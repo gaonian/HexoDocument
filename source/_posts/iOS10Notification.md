@@ -3,13 +3,13 @@ title : iOS 10 Notification Extension
 time : 2017-6-13
 tag : 
 ---
-##简介
+## 简介
 iOS10对推送通知增加了一些功能，用户可以对推送的内容增加附件（图片／音频／视频），也可以自定义视图更美观的展示推送内容。
 - UNNotificationServiceExtension （通知服务扩展）
 - UNNotificationContentExtension （通知内容扩展）
 ps：简单来说，UNNotificationServiceExtension是用来下载附件的扩展，UNNotificationContentExtension用来自定义视图的扩展
 
-##1. UNNotificationAttachment （通知附件）
+## 1. UNNotificationAttachment （通知附件）
 A UNNotificationAttachment object contains audio, image, or video content to display alongside the notification content. Your app always supplies attachments. For local notifications, the app adds attachments when creating the rest of the notification’s content. You can add attachments to a remote notification by implementing a notification service extension, as represented by the UNNotificationServiceExtension class.
 用来管理通知附件，格式支持图片，音频，视频。格式的大小也有限制
 
@@ -37,7 +37,7 @@ A UNNotificationAttachment object contains audio, image, or video content to dis
 - 远程推送
   远程推送需要实现UNNotificationServiceExtension这个扩展，在扩展里面监听通知内容，拦截通知内的附件url，进行下载，然后在添加到attachment内，回调，通知展示。一会会专门讲这个。（ ps：平常项目开发中肯定会有远程推送，所以必须是要实现UNNotificationServiceExtension这个扩展才能展示附件。）
 
-##2. UNNotificationServiceExtension （通知服务扩展）
+## 2. UNNotificationServiceExtension （通知服务扩展）
 A UNNotificationServiceExtension object, the principle class for a Notification Service app extension, lets you process the payload of a remote (sometimes called push) notification before it is delivered to the user.
 ![image](http://upload-images.jianshu.io/upload_images/1868661-21c02300372eabb1.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 原来的逻辑是服务器发送apns给苹果，苹果直接把内容推给用户展示。现在增加了ServiceExtension这一步骤，等于是苹果推给用户过程中被拦截了，可以对推送内容增加一些扩展，例如附件的下载等，然后处理完毕之后再展示到用户手机。
@@ -154,7 +154,7 @@ A UNNotificationServiceExtension object, the principle class for a Notification 
 ![](http://upload-images.jianshu.io/upload_images/1868661-0ac358ca44c1d63d.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 ](http://upload-images.jianshu.io/upload_images/1868661-cc3d9a1f4df0771a.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-##3. UNNotificationContentExtension （通知内容扩展）
+## 3. UNNotificationContentExtension （通知内容扩展）
 The UNNotificationContentExtension protocol lets you present a custom interface for your app’s notifications. You adopt this protocol in custom UIViewController subclasses, using the view controller’s view to display the notification contents. You deliver your view controller class inside a Notification Content extension.
 iOS10推送提供了一块区域让用户自定义view去更好的展示推送内容，信息量更大。想要自定义view则必须要实现`UNNotificationContentExtension`这个扩展，但是貌似只有支持3DTouch的设备通过重压或者下拉才能展示出来自定义的view。注意，这个自定义的view只支持展示功能，不能交互。
 
@@ -218,7 +218,7 @@ iOS10推送提供了一块区域让用户自定义view去更好的展示推送�
 根据这个id来展示不同的自定义内容。`UNNotificationExtensionCategory`也可以是一个数组，多个catogoryId对应一个自定义的view。
 ![](http://upload-images.jianshu.io/upload_images/1868661-724cc8d03e7db59b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-##4. 结合使用两个扩展
+## 4. 结合使用两个扩展
 在自定义view的时候，可以获取到推送内容以及附件信息，放到自定义的view中。简单的运用如下
 ```
 - (void)didReceiveNotification:(UNNotification *)notification {
