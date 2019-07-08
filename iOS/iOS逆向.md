@@ -355,15 +355,70 @@ debugserver只能调试自己开发的app，调试第三方app是没有权限的
 
 ### 常用LLDB指令
 
+```
+(lldb) expression a
+(int) $0 = 10
+(lldb) p a
+(int) $1 = 10
+(lldb) po a
+10
+
+// bt (thread backtrace)
+// 打印当前线程的堆栈信息
+(lldb) bt
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 2.1
+  * frame #0: 0x0000000100000edf Test`test at main.m:15:17
+    frame #1: 0x0000000100000f35 Test`main(argc=1, argv=0x00007ffeefbff570) at main.m:23:9
+    frame #2: 0x00007fff6de233d5 libdyld.dylib`start + 1
+    
+// 设置断点 Person.m test方法设置断点
+(lldb) breakpoint set -f Person.m -n test
+(lldb) breakpoint set -n "-[Person test]"
+// Person.m 12行设置断点
+(lldb) breakpoint set -f Person.m -l 12
+
+// 查看所有断点
+(lldb) breakpoint list
+
+// 删除某个断点
+(lldb) breakpoint delete 3
+
+// frame 
+// frame即是帧，其实就是当前的程序堆栈，我们输入bt命令，打印出来的其实是当前线程的frame。
+// 在调试中，一般我们比较关心当前堆栈的变量值，我们可以使用frame variable来获取全部变量值。
+// 当然也可以输入特定变量名，来获取单独的变量值，如frame v a来获取a的值。
+(lldb) frame variable
+(int) argc = 1
+(const char **) argv = 0x00007ffeefbff570
+
+(lldb) frame variable
+(int) a = 10
+(int) b = 20
+(int) c = 30
+
+(lldb) frame variable a
+(int) a = 10
+
+(lldb) frame info
+frame #0: 0x0000000100000edf Test`test at main.m:15:17
+
+// 根据地址或name查看信心或对应文件的位置
+(lldb) image lookup -n test
+(lldb) image lookup -a 0x000000010a1c3e36
+
+// 查看Person的类型，LLDB会把Person所有的属性和成员变量都打印出来
+(lldb) image lookup -t Person
+```
 
 
-# restore_symbols
 
+# restore-symbol
 
+https://github.com/tobefuturer/restore-symbol
 
 # theos
 
-
+逆向过程中，我们在分析完毕基本确认需要修改某个函数之后，剩下的就是写代码去hook了。幸运的是已经有大牛为我们编写了注入拦截函数的工具`Theos` 
 
 # 重签名
 
