@@ -737,43 +737,25 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 ➜  make package install        
 ```
 
+## 运行
+
+启动app，此时Cydia Substrate会根据plist中的Bundle ID将我们的动态库插入到对应的app中。
+
+打开系统控制台，查看手机的日志。可以看到先加载了我们的动态库，紧接着我们的构造函数就调用了，此时说明已经成功的hook了。
+
+![log](./jailbreak_image/jailbreak_20.png)
 
 
-```
-➜  douyutweak make package
-> Making all for tweak douyuTweak…
-==> Preprocessing Tweak.x…
-==> Compiling Tweak.x (armv7)…
-==> Linking tweak douyuTweak (armv7)…
-ld: warning: OS version (6.0.0) too small, changing to 7.0.0
-ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
-==> Generating debug symbols for douyuTweak…
-==> Preprocessing Tweak.x…
-==> Compiling Tweak.x (arm64)…
-==> Linking tweak douyuTweak (arm64)…
-ld: warning: OS version (6.0.0) too small, changing to 7.0.0
-ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
-==> Generating debug symbols for douyuTweak…
-==> Preprocessing Tweak.x…
-==> Compiling Tweak.x (arm64e)…
-==> Linking tweak douyuTweak (arm64e)…
-ld: warning: OS version (6.0.0) too small, changing to 7.0.0
-ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
-==> Generating debug symbols for douyuTweak…
-==> Merging tweak douyuTweak…
-==> Signing douyuTweak…
-> Making stage for tweak douyuTweak…
-dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-6+debug_iphoneos-arm.deb'
-➜  douyutweak 
-➜  douyutweak make install
-==> Installing…
-(Reading database ... 4267 files and directories currently installed.)
-Preparing to replace com.yourcompany.douyutweak 0.0.1-1+debug (using /tmp/_theos_install.deb) ...
-Unpacking replacement com.yourcompany.douyutweak ...
-Setting up com.yourcompany.douyutweak (0.0.1-6+debug) ...
-==> Unloading SpringBoard…
-➜  douyutweak 
-```
+
+接下来就进入直播界面，看一下是否执行`DYPendantContainarView` 的initwihitframe方法
+
+![tweak](./jailbreak_image/jailbreak_21.png)
+
+可以看到我们自己的日志已经打出来了，说明我们之前的猜想都是正确的，如果没问题的话广告的view没有创建成功，则广告不会展示，看下图
+
+![ui](./jailbreak_image/jailbreak_19.png)
+
+## 总结
 
 
 
