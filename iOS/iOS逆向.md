@@ -628,41 +628,152 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 ## 编写代码
 
-了解基础的语法之后，我们来根据刚刚所学的来做一个小的练习。这里以爱奇艺app为例，去除首页升级的弹窗。
+了解基础的语法之后，我们来根据刚刚所学的来做一个小的练习。这里以斗鱼app为例，去除直播页面的小广告，见下图
 
 ![iqiyi](./jailbreak_image/jailbreak_17.png)
 
 
 
-1. 打开app，打开mac上的Reveal UI工具，查看层级，经过分析，我们发现这个升级提示弹窗是 `QYUIFadeAlertView` ，接下来我们就要通过头文件找到这个类看一下具体的代码
+1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，初步思考，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
 
    ![Reveal](./jailbreak_image/jailbreak_18.png)
 
    
 
-2. 我们把脱过壳的爱奇艺mach-o文件从手机拷贝到电脑上，通过class-dump导出头文件，成功之后把头文件拖到sublime中，找到刚刚的 `QYUIFadeAlertView` 这个类。
+2. 我们把脱过壳的斗鱼mach-o文件从手机拷贝到电脑上，通过class-dump导出头文件，成功之后把头文件拖到sublime中，找到刚刚的 `DYPendantContainarView` 这个类。
 
-3. 简单编写代码。对于这种弹窗类的view，hook最简单的办法就是初始化的时候直接return nil，创建不成功，自然不会显示了。
+3. 简单编写代码。对于这种附加到上层的view，hook最简单的办法就是初始化的时候直接return nil，创建不成功，自然不会显示了。
 
    ```
-   %hook QYUIFadeAlertView
-   
-   - (id)initWithTitle:(id)arg1 message:(id)arg2 {
-   	%log;
-   	return nil;
-   }
+   %hook DYPendantContainarView
    
    - (id)initWithFrame:(struct CGRect)arg1 {
-   	%log;
+   	NSLog(@"-------- initWithFrame ------ ");
    	return nil;
    }
    
    %end
+   
+   %ctor {
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   }
    ```
 
-4. 
+
+## 编译打包安装
+
+在上一步我们已经分析完，代码也写完了，这一步我们做的就是如何把刚才写的代码添加到手机上并起作用呢。
+
+代码写完之后我们要执行三步操作
+
+1. `make` 命令执行makefile编译
+
+2. ```shell
+   ➜  douyutweak make
+   > Making all for tweak douyuTweak…
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (armv7)…
+   ==> Linking tweak douyuTweak (armv7)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/armv7/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64)…
+   ==> Linking tweak douyuTweak (arm64)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64e)…
+   ==> Linking tweak douyuTweak (arm64e)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64e/Tweak.x.m
+   ==> Merging tweak douyuTweak…
+   ==> Signing douyuTweak…
+   ➜  douyutweak 
+   ```
+
+2. 编译完成之后打包成deb，会在packages文件夹下生成一个deb包
+
+   ```shell
+   ➜  douyutweak make package
+   > Making all for tweak douyuTweak…
+   make[2]: Nothing to be done for `internal-library-compile'.
+   > Making stage for tweak douyuTweak…
+   dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-7+debug_iphoneos-arm.deb'
+   ➜  douyutweak 
+   ```
+
+3. 安装
+
+   ```
+   ➜  douyutweak make install
+   ==> Installing…
+   (Reading database ... 4267 files and directories currently installed.)
+   Preparing to replace com.yourcompany.douyutweak 0.0.1-6+debug (using /tmp/_theos_install.deb) ...
+   Unpacking replacement com.yourcompany.douyutweak ...
+   Setting up com.yourcompany.douyutweak (0.0.1-7+debug) ...
+   ==> Unloading SpringBoard…
+   ➜  douyutweak 
+   ```
+
+   执行完成之后会重启SpringBoard，插件会安装在`/Library/MobileSubstrate/DynamicLibraries` 这个位置下
+
+   ![tweak](./jailbreak_image/jailbreak_22.png)
+
+以上三步就将编写好的代码打成包安装到手机上，接下来就是验证刚才写的代码了。
+
+注意，以上三步操作也可以合成一步操作
+
+```
+➜  make package install        
+```
 
 
+
+```
+➜  douyutweak make package
+> Making all for tweak douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (armv7)…
+==> Linking tweak douyuTweak (armv7)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (arm64)…
+==> Linking tweak douyuTweak (arm64)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (arm64e)…
+==> Linking tweak douyuTweak (arm64e)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Merging tweak douyuTweak…
+==> Signing douyuTweak…
+> Making stage for tweak douyuTweak…
+dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-6+debug_iphoneos-arm.deb'
+➜  douyutweak 
+➜  douyutweak make install
+==> Installing…
+(Reading database ... 4267 files and directories currently installed.)
+Preparing to replace com.yourcompany.douyutweak 0.0.1-1+debug (using /tmp/_theos_install.deb) ...
+Unpacking replacement com.yourcompany.douyutweak ...
+Setting up com.yourcompany.douyutweak (0.0.1-6+debug) ...
+==> Unloading SpringBoard…
+➜  douyutweak 
+```
 
 
 
