@@ -330,7 +330,7 @@ debugserver只能调试自己开发的app，调试第三方app是没有权限的
 
 - 将重新签名的debugserver放到iPhone `/usr/bin` 目录下
 
-###debugserver使用
+### debugserver使用
 
 - iPhone，debugserver在iPhone上要附加到某一个正在运行的进程中
 
