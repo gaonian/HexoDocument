@@ -414,11 +414,368 @@ frame #0: 0x0000000100000edf Test`test at main.m:15:17
 
 # restore-symbol
 
-https://github.com/tobefuturer/restore-symbol
+https://github.com/tobefuturer/restore-symbol 还原符号表
 
-# theos
+# Theos
 
 逆向过程中，我们在分析完毕基本确认需要修改某个函数之后，剩下的就是写代码去hook了。幸运的是已经有大牛为我们编写了注入拦截函数的工具`Theos` 
+
+https://github.com/theos/theos/wiki 官方wiki
+
+## 安装
+
+1. Install the following prerequisites:
+
+   - [Homebrew](https://brew.sh/)
+   - [Xcode](https://itunes.apple.com/us/app/xcode/id497799835?ls=1&mt=12)1 is mandatory. The Command Line Tools package isn’t sufficient for Theos to work. Xcode includes toolchains for all Apple platforms.
+
+   1 Xcode 5.0 or newer. Xcode 4.4 supported, but only when building for ARMv6 (1st/2nd generation iPhone/iPod touch).
+
+   ```
+    brew install ldid xz
+   ```
+
+2. Set up the `THEOS` environment variable:
+
+   ```shell
+    echo "export THEOS=~/theos" >> ~/.bash_profile
+    echo "export PATH=$THEOS/bin:$PATH" >> ~/.bash_profile
+    source ~/.bash_profile
+   ```
+
+   For this change to take effect, you must restart your shell. Open a new tab and do `echo $THEOS` on your shell to check if this is working.
+
+3. Clone Theos to your device:
+
+   ```
+    git clone --recursive https://github.com/theos/theos.git $THEOS
+   ```
+
+## 创建项目
+
+Theos 提供了很多模块来创建不同类型的项目。我们在这里选择`tweak`。
+
+打开终端，选择任意目录。 输入 “ nic.pl ” ，选择10 tweak项目，按回车之后会生成一些配置需要填写，填写完毕之后就会在当前目录下生成一个项目，这个项目就是我们要编写代码的tweak项目。
+
+![tweak](./jailbreak_image/jailbreak_15.png)
+
+配置选项说明：
+
+- `Project Name (required)` : 项目名称
+
+- `Package Name [com.yourcompany.testtweak]` : 创建包得唯一ID，回车即可，有默认值
+
+- `Author/Maintainer Name` : 创建者名称，默认mac用户名
+
+- `MobileSubstrate Bundle filter` : 需要注入的目标应用的Bundle ID
+
+- `List of applications to terminate upon installation` : 安装成功后杀掉指定的进程，回车即可
+
+  
+
+项目结构：
+
+![tweak](./jailbreak_image/jailbreak_16.png)
+
+- `Makefile` : makefile文件
+
+  ```makefile
+  INSTALL_TARGET_PROCESSES = SpringBoard
+  
+  include $(THEOS)/makefiles/common.mk
+  
+  TWEAK_NAME = testTweak
+  
+  testTweak_FILES = Tweak.x
+  testTweak_CFLAGS = -fobjc-arc
+  
+  include $(THEOS_MAKE_PATH)/tweak.mk
+  ```
+
+  需要在文件顶部加入连接phone的环境变量
+
+  ```makefile
+  export THEOS_DEVICE_IP=127.0.0.1
+  export THEOS_DEVICE_PORT=10010
+  ```
+
+  也可以设置全局环境变量，这样就不需要每个文件单独写了
+
+  ```
+  echo "export THEOS_DEVICE_IP=127.0.0.1" >> ~/.bash_profile
+  echo "export THEOS_DEVICE_PORT=10010" >> ~/.bash_profile
+  source ~/.bash_profile
+  ```
+
+- `Tweak.x` : 编写代码的文件
+
+- `control` : 指定deb包得一些信息，包括名字，描述等
+
+  ```
+  Package: com.yourcompany.testtweak
+  Name: testTweak
+  Depends: mobilesubstrate
+  Version: 0.0.1
+  Architecture: iphoneos-arm
+  Description: An awesome MobileSubstrate tweak!
+  Maintainer: gyh
+  Author: gyh
+  Section: Tweaks
+  ```
+
+- `testTweak.plist` : 用户指定需要注入的目标文件的Bundle ID
+
+  ```
+  { Filter = { Bundles = ( "com.qiyi.iphone" ); }; }
+  ```
+
+
+
+## 基础语法介绍
+
+- **%hook 类名**    **%end**
+
+  hook指定的类，并在里面写需要hook的方法，比如说想hook ViewController 的viewDidLoad方法
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+  
+   }
+  
+  %end
+  ```
+
+  这样就hook成功viewDidLoad方法了，当app调用viewDidLoad的时候，会先来到我们这个地方。所以就可以在此时做一些事情。 注意，%hook 和 %end是成对出现的，%end代表hook一个类的结束
+
+- **%log**
+
+  打印方法调用详情，会把传入的参数都打印出来。可通过mac的控制台应用查看phone输出的日志
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+   	%log;
+   }
+  
+  - (void)messageName:(int)arg1 arg2:(int)arg2 {
+  	%log;
+  }
+  
+  %end
+  ```
+
+- **%orig**
+
+  调用原来的方法，使程序走回原来的方法，不影响正常流程
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+   	%log;
+  	%orig;
+   }
+  
+  - (void)messageName:(int)arg1 arg2:(int)arg2 {
+  	%log;
+  	%orig;
+  }
+  
+  %end
+  ```
+
+- **%new**
+
+  如果需要给当前类添加一个新的方法，就需要使用`%new` 来实现
+
+  ```
+  %new
+  - (void)newMethod {
+  }
+  ```
+
+- **%c**
+
+  用来生成某个类的对象方法，%c(ClassName) ，实质上是调用了oc的objc_getClass()方法
+
+  ```
+  SettingController *svc = [[%c(SettingController) alloc] init];
+  
+  // 这种写法是报错的 ×
+  SettingController *svc = [[SettingController alloc] init];
+  ```
+
+- **%ctor** **%dtor**
+
+  - %ctor 程序启动加载动态库时调用，做一些初始化动作
+  - %dtor 程序退出的时候调用，处理一些尾巴
+  - %ctor %dtor 相当于构造函数和析构函数
+
+  ```
+  %ctor {
+  	printf("开始\n");
+  }
+  
+  %dtor {
+  	printf("结束\n");
+  }
+  ```
+
+更多语法可参考Logos语法文档 http://iphonedevwiki.net/index.php/Logos
+
+## 编写代码
+
+了解基础的语法之后，我们来根据刚刚所学的来做一个小的练习。这里以斗鱼app为例，去除直播页面的小广告，见下图
+
+![iqiyi](./jailbreak_image/jailbreak_17.png)
+
+
+
+1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，初步思考，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
+
+   ![Reveal](./jailbreak_image/jailbreak_18.png)
+
+   
+
+2. 我们把脱过壳的斗鱼mach-o文件从手机拷贝到电脑上，通过class-dump导出头文件，成功之后把头文件拖到sublime中，找到刚刚的 `DYPendantContainarView` 这个类。
+
+3. 简单编写代码。对于这种附加到上层的view，hook最简单的办法就是初始化的时候直接return nil，创建不成功，自然不会显示了。
+
+   ```
+   %hook DYPendantContainarView
+   
+   - (id)initWithFrame:(struct CGRect)arg1 {
+   	NSLog(@"-------- initWithFrame ------ ");
+   	return nil;
+   }
+   
+   %end
+   
+   %ctor {
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   }
+   ```
+
+
+## 编译打包安装
+
+在上一步我们已经分析完，代码也写完了，这一步我们做的就是如何把刚才写的代码添加到手机上并起作用呢。
+
+代码写完之后我们要执行三步操作
+
+1. `make` 命令执行makefile编译
+
+2. ```shell
+   ➜  douyutweak make
+   > Making all for tweak douyuTweak…
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (armv7)…
+   ==> Linking tweak douyuTweak (armv7)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/armv7/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64)…
+   ==> Linking tweak douyuTweak (arm64)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64e)…
+   ==> Linking tweak douyuTweak (arm64e)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64e/Tweak.x.m
+   ==> Merging tweak douyuTweak…
+   ==> Signing douyuTweak…
+   ➜  douyutweak 
+   ```
+
+2. 编译完成之后打包成deb，会在packages文件夹下生成一个deb包
+
+   ```shell
+   ➜  douyutweak make package
+   > Making all for tweak douyuTweak…
+   make[2]: Nothing to be done for `internal-library-compile'.
+   > Making stage for tweak douyuTweak…
+   dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-7+debug_iphoneos-arm.deb'
+   ➜  douyutweak 
+   ```
+
+3. 安装
+
+   ```
+   ➜  douyutweak make install
+   ==> Installing…
+   (Reading database ... 4267 files and directories currently installed.)
+   Preparing to replace com.yourcompany.douyutweak 0.0.1-6+debug (using /tmp/_theos_install.deb) ...
+   Unpacking replacement com.yourcompany.douyutweak ...
+   Setting up com.yourcompany.douyutweak (0.0.1-7+debug) ...
+   ==> Unloading SpringBoard…
+   ➜  douyutweak 
+   ```
+
+   执行完成之后会重启SpringBoard，插件会安装在`/Library/MobileSubstrate/DynamicLibraries` 这个位置下
+
+   ![tweak](./jailbreak_image/jailbreak_22.png)
+
+以上三步就将编写好的代码打成包安装到手机上，接下来就是验证刚才写的代码了。
+
+注意，以上三步操作也可以合成一步操作
+
+```
+➜  make package install        
+```
+
+
+
+```
+➜  douyutweak make package
+> Making all for tweak douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (armv7)…
+==> Linking tweak douyuTweak (armv7)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (arm64)…
+==> Linking tweak douyuTweak (arm64)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Preprocessing Tweak.x…
+==> Compiling Tweak.x (arm64e)…
+==> Linking tweak douyuTweak (arm64e)…
+ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+==> Generating debug symbols for douyuTweak…
+==> Merging tweak douyuTweak…
+==> Signing douyuTweak…
+> Making stage for tweak douyuTweak…
+dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-6+debug_iphoneos-arm.deb'
+➜  douyutweak 
+➜  douyutweak make install
+==> Installing…
+(Reading database ... 4267 files and directories currently installed.)
+Preparing to replace com.yourcompany.douyutweak 0.0.1-1+debug (using /tmp/_theos_install.deb) ...
+Unpacking replacement com.yourcompany.douyutweak ...
+Setting up com.yourcompany.douyutweak (0.0.1-6+debug) ...
+==> Unloading SpringBoard…
+➜  douyutweak 
+```
+
+
 
 # 重签名
 
