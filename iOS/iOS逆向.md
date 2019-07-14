@@ -624,6 +624,44 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
   }
   ```
 
+- **logify.pl**
+
+  logify.pl可以将一个头文件所有方法快速的打上log，调试的时候可以通过控制台看到每一个方法的调用
+
+  ```shell
+  ➜  DouYuHeaders logify.pl DYPendantContainarView.h > DYPendantContainarView.mm
+  
+  ➜  DouYuHeaders ls -l | grep DYPendantContainarView  
+  -rw-r--r--  1 gyh  staff    3375  7 11 00:18 DYPendantContainarView.h
+  -rw-r--r--  1 gyh  staff    4618  7 14 11:45 DYPendantContainarView.mm
+  ➜  DouYuHeaders 
+  ```
+
+  可以看到会在当前目录下生成一个.mm文件，每一个方法都默认添加了%log，极大提高了分析的效率
+
+  ```
+  %hook DYPendantContainarView
+  
+  + (void)initialize { %log; %orig; }
+  - (void)setKvoController:(FBKVOController *)kvoController { %log; %orig; }
+  - (FBKVOController *)kvoController { %log; FBKVOController * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setPendantConfig:(NSDictionary *)pendantConfig { %log; %orig; }
+  - (NSDictionary *)pendantConfig { %log; NSDictionary * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setDisplayType:(long long )displayType { %log; %orig; }
+  - (long long )displayType { %log; long long  r = %orig; HBLogDebug(@" = %lld", r); return r; }
+  - (void)setTipViews:(NSMutableArray *)tipViews { %log; %orig; }
+  - (NSMutableArray *)tipViews { %log; NSMutableArray * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setMoreButton:(UIButton *)moreButton { %log; %orig; }
+  - (UIButton *)moreButton { %log; UIButton * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setScrollView:(UIScrollView *)scrollView { %log; %orig; }
+  - (UIScrollView *)scrollView { %log; UIScrollView * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  ...
+  ...
+  ...
+  
+  %end
+  ```
+
 更多语法可参考Logos语法文档 http://iphonedevwiki.net/index.php/Logos
 
 ## 编写代码
@@ -757,9 +795,154 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 ## 总结
 
+`make` 的时候theos会把我们使用logos语法编写的tweak代码转换成c++代码，并打成动态库dylib文件。可以使用`logos.pl` 来主动进行转换查看
+
+```shell
+➜  douyutweak logos.pl Tweak.x > Tweak.mm
+```
+
+拿刚刚斗鱼的例子来看，把代码重定向输出到tweak.mm文件中
+
+```c++
+#line 1 "Tweak.x"
+
+#include <substrate.h>
+#if defined(__clang__)
+#if __has_feature(objc_arc)
+#define _LOGOS_SELF_TYPE_NORMAL __unsafe_unretained
+#define _LOGOS_SELF_TYPE_INIT __attribute__((ns_consumed))
+#define _LOGOS_SELF_CONST const
+#define _LOGOS_RETURN_RETAINED __attribute__((ns_returns_retained))
+#else
+#define _LOGOS_SELF_TYPE_NORMAL
+#define _LOGOS_SELF_TYPE_INIT
+#define _LOGOS_SELF_CONST
+#define _LOGOS_RETURN_RETAINED
+#endif
+#else
+#define _LOGOS_SELF_TYPE_NORMAL
+#define _LOGOS_SELF_TYPE_INIT
+#define _LOGOS_SELF_CONST
+#define _LOGOS_RETURN_RETAINED
+#endif
+
+@class DYPendantContainarView; 
+static DYPendantContainarView* (*_logos_orig$_ungrouped$DYPendantContainarView$initWithFrame$)(_LOGOS_SELF_TYPE_INIT DYPendantContainarView*, SEL, struct CGRect) _LOGOS_RETURN_RETAINED; static DYPendantContainarView* _logos_method$_ungrouped$DYPendantContainarView$initWithFrame$(_LOGOS_SELF_TYPE_INIT DYPendantContainarView*, SEL, struct CGRect) _LOGOS_RETURN_RETAINED; 
+
+#line 3 "Tweak.x"
+
+
+static DYPendantContainarView* _logos_method$_ungrouped$DYPendantContainarView$initWithFrame$(_LOGOS_SELF_TYPE_INIT DYPendantContainarView* __unused self, SEL __unused _cmd, struct CGRect arg1) _LOGOS_RETURN_RETAINED {
+	NSLog(@"-------- initWithFrame ------ ");
+	return nil;
+}
+
+
+
+static __attribute__((constructor)) void _logosLocalCtor_ce8e2604(int __unused argc, char __unused **argv, char __unused **envp) {
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+}
+static __attribute__((constructor)) void _logosLocalInit() {
+{Class _logos_class$_ungrouped$DYPendantContainarView = objc_getClass("DYPendantContainarView"); MSHookMessageEx(_logos_class$_ungrouped$DYPendantContainarView, @selector(initWithFrame:), (IMP)&_logos_method$_ungrouped$DYPendantContainarView$initWithFrame$, (IMP*)&_logos_orig$_ungrouped$DYPendantContainarView$initWithFrame$);} }
+#line 19 "Tweak.x"
+```
+
+`make package` 会把动态库打包成deb包，`make install` 将deb包传到手机，cydia接手，把deb包安装到指定文件夹。 
+
+打开app的时候，Cydia Substrate会根据plist文件查看是否是要hook的进程，如果BundleID一致，则会在启动的时候插入我们自己的动态库，这样就达到了hook的目的。
+
+注意: 
+
+1. theos的tweak并不会对可执行文件进行修改，只是在内存中修改逻辑
+
+2. 只有在越狱机器中才有权限在启动时插入动态库，在[dyld源码](https://opensource.apple.com/tarballs/dyld/)中可以看到这个逻辑）
+
 
 
 # 重签名
+
+## 背景
+
+​		为了确保用户安装到手机上的应用都是经过认证的合法的应用，苹果有一套自己的签名机制，所有安装到设备中的应用必须是拥有合法签名的应用。从appstroe下载的应用和真机调试的应用都是受信任的。 
+
+​		我们之前这些步骤能顺利进行都是因为是基于越狱机器的，越狱机器是不会去验证这些签名证书等信息的。但是我们如果想要针对非越狱机器进行逆向应该怎么办呢？之前说过，在非越狱机器上我们是没有权限动态插入动态库，也不能访问手机文件夹。唯一的做法就是修改mach-o文件，把我们的动态库插入到mach-o文件内，但是还有问题就是一旦修改了mach-o文件，app原来的签名信息就被破坏了，安装的时候就不能通过验证了。所有我们需要做的就是修改完mach-o之后把签名信息都重新修改，改成手机可信任的签名，这样就可以安装了。这就引出了重签名这个机制
+
+## 原理
+
+​		在平时的开发中，我们想要进行真机调试，需要进行一步步复杂的操作，那么这些操作分别是什么意思，为什么要这样做？
+
+首先我们来看一下`CertificateSigningRequest.certSigningRequest` `ios_development.cer`   `entitlements` `*.mobileprovision` 这几个文件都代表着什么
+
+- `CertificateSigningRequest.certSigningRequest`  申请者的公钥信息（相当于mac公钥），包含了申请时填写的邮箱，name信息等。同时生成的还有私钥，公钥和私钥是一一对应的
+
+- `ios_development.cer` 通过mac公钥，添加账号信息，再通过哈希算法生成一个信息摘要，最后再通过苹果的私钥进行加密，生成一个cer证书。cer证书里面包括了 `mac公钥`和`苹果私钥加密的数字签名` 
+
+  苹果的私钥存在于苹果后台，公钥存在于每一台iphone，用于解密验证
+
+- `entitlements` 授权文件，其中列出了app哪些行为会被允许，哪些行为会被拒绝。在Xcode中的Capabilities进行设置后，相关条目会添加到授权文件中。
+
+  ```
+  ➜  Desktop codesign -d --entitlements - DYZB 
+  Executable=/Users/gyh/Desktop/DYZB
+  ??qq<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+  	<key>com.apple.developer.networking.wifi-info</key>
+  	<true/>
+  	<key>keychain-access-groups</key>
+  	<array>
+  		<string>xxx.tv.douyu.live</string>
+  		<string>xxx.kc.group.dy</string>
+  	</array>
+  	<key>com.apple.developer.team-identifier</key>
+  	<string>xxx</string>
+  	<key>com.apple.external-accessory.wireless-configuration</key>
+  	<true/>
+  	<key>application-identifier</key>
+  	<string>xxx.tv.douyu.live</string>
+  	<key>aps-environment</key>
+  	<string>production</string>
+  	<key>com.apple.security.application-groups</key>
+  	<array>
+  		<string>group.tv.douyu.live</string>
+  	</array>
+  </dict>
+  </plist>%                                                                          ➜  Desktop 
+  ```
+
+- `*.mobileprovision`  描述文件，包含了前面的`证书信息` 、`appId` 、`devices`、`entitlements` app在打包的时候会把通过苹果私钥加密过的配置文件（`embedded.mobileprovision` ）拷贝到.app目录下。
+
+  ```
+  // 查看mobileprovision描述文件
+  security cms -D -i embedded.mobileprovision 
+  ```
+
+
+
+接下来就是如何验证签名和解密了
+
+- app在启动的时候，先通过苹果公钥把描述文件解出来，一一验证配置devices、appid、entitlements信息，任何一样不符合就无法安装。
+
+- 接下来验证cer证书信息，通过苹果公钥对证书的数字签名进行解密，得到一个信息摘要和mac的公钥和账号信息。把mac的公钥和账号信息通过哈希算法生成一个信息摘要，拿这个信息摘要和我们得到的信息摘要进行对应，如果一致，则证明未被篡改，我们拿到的信息是可信任的
+
+- 取出刚刚拿到的mac公钥对可执行文件进行解密并验证，这样就完成了验证，成功安装运行
+
+  ![sign](./jailbreak_image/jailbreak_23.png)
+
+## 实现
+
+了解了上面的签名机制之后，我们知道了 一旦修改了mach-o文件，则签名信息就会被破坏，这样就完成不了安装。所以我们要对修改过的mach-o文件进行重签名，也就是用自己的公钥和证书去重新签名，可以安装到自己手机上。
+
+
+
+
+
+
 
 
 
