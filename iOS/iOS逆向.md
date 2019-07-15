@@ -936,9 +936,14 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
 ## 实现
 
-了解了上面的签名机制之后，我们知道了 一旦修改了mach-o文件，则签名信息就会被破坏，这样就完成不了安装。所以我们要对修改过的mach-o文件进行重签名，也就是用自己的公钥和证书去重新签名，可以安装到自己手机上。
+了解了上面的签名机制之后，我们知道了 一旦修改mach-o文件，则签名信息就会被破坏，完成不了安装。所以我们要对修改过的mach-o文件进行重签名，也就是用自己的公钥和证书去重新签名，这样就可以安装到自己手机上。
 
+还拿斗鱼为例，把刚刚开发的dylib和app一起装到非越狱机器上。
 
+1. 去苹果开发者后台生成一套证书，appId要选择通配符，device包含要安装的机器，最后生成一个描述文件，下载改名为`embedded.mobileprovision`  (需要付费的开发者账号)
+2. 从越狱机器拷贝脱壳.app包 、`douyuTweak.dylib` 动态库、`CydiaSubstrate` 动态库（由于依赖它，所有需要一并拷贝）到mac上
+3. 拷贝`embedded.mobileprovision`、`douyuTweak.dylib`、`CydiaSubstrate` 到.app包目录下，和mach-o在同一级。
+4. 关联动态库到mach-o，目的是运行的时候可以执行我们的动态库文件。
 
 
 
