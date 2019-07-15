@@ -420,7 +420,7 @@ https://github.com/tobefuturer/restore-symbol 还原符号表
 
 逆向过程中，我们在分析完毕基本确认需要修改某个函数之后，剩下的就是写代码去hook了。幸运的是已经有大牛为我们编写了注入拦截函数的工具`Theos` 
 
-https://github.com/theos/theos/wiki 官方wiki
+[官方wiki](https://github.com/theos/theos/wiki)
 
 ## 安装
 
@@ -1080,11 +1080,17 @@ static __attribute__((constructor)) void _logosLocalInit() {
      codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B --entitlements entitlements.plist DYZB.app 
      ```
 
+   - 也可以使用 [ios-app-signer](https://github.com/DanTheMan827/ios-app-signer)重签名工具进行重签名，配置完点击start自动重签，并生成ipa包
+
+     ![signer](./jailbreak_image/jailbreak_27.png)
+   
      
+   
+8. 安装。创建Payload文件夹，拖入.app包，压缩Payload，压缩之后为zip，修改zip为ipa。通过`iFunBox`或者其他第三方工具安装到手机。安装成功，大功告成
 
-     
+   ![ipa](./jailbreak_image/jailbreak_26.png)
 
-
+   
 
 
 
