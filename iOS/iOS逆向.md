@@ -410,11 +410,27 @@ frame #0: 0x0000000100000edf Test`test at main.m:15:17
 (lldb) image lookup -t Person
 ```
 
+### 还原符号表restore-symbol
 
+[restore-symbol地址](https://github.com/tobefuturer/restore-symbol )。动态调试的时候有时候需要对某个方法打断点，例如`breakpoint set -n "-[Person test]"` ，但是你会发现断点并没有打成功，因为在app打包发布到appstroe的时候编译器会去掉符号的具体信息，所以此时的`[Person test]`是找不到的。
 
-# restore-symbol
+恢复符号表之后就可以针对`Person test` 打断点了，和我们使用xcode开发时一模一样。
 
-https://github.com/tobefuturer/restore-symbol 还原符号表
+- Download source code and compile.
+
+```
+git clone --recursive https://github.com/tobefuturer/restore-symbol.git
+cd restore-symbol && make
+./restore-symbol
+```
+
+- Restore symbol using this command. It will output a new mach-o file with symbol.
+
+```
+./restore-symbol /pathto/origin_mach_o_file -o /pathto/mach_o_with_symbol 
+```
+
+把新生成的mach-o覆盖之前的，重新启动，测试即可。
 
 # Theos
 
@@ -1090,11 +1106,23 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
    ![ipa](./jailbreak_image/jailbreak_26.png)
 
-   
-
-
-
 
 
 # MonkeyDev
 
+MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%94%E7%94%A8%E9%80%86%E5%90%91%E4%B8%8E%E5%AE%89%E5%85%A8/22643389?fr=aladdin](https://baike.baidu.com/item/iOS应用逆向与安全/22643389?fr=aladdin)) 的作者开发的一套逆向工具，使用xcode完成一切操作，功能强大，使用方便。 [github地址](https://github.com/AloneMonkey/MonkeyDev)
+
+- 可以使用Xcode开发CaptainHook Tweak、Logos Tweak 和 Command-line Tool，在越狱机器开发插件，这是原来iOSOpenDev功能的迁移和改进。
+- 只需拖入一个砸壳应用，自动集成class-dump、restore-symbol、Reveal、Cycript和注入的动态库并重签名安装到非越狱机器。
+- 支持调试自己编写的动态库和第三方App
+- 支持通过CocoaPods第三方应用集成SDK以及非越狱插件，简单来说就是通过CocoaPods搭建了一个非越狱插件商店。
+
+下面简单介绍一下使用流程。具体的安装和配置说明请查看[wiki]([https://github.com/AloneMonkey/MonkeyDev/wiki/%E5%AE%89%E8%A3%85](https://github.com/AloneMonkey/MonkeyDev/wiki/安装)) ，十分具体。
+
+- 安装完成之后，新建xcode项目的时候会发现下面多了一排功能按钮可供选择，根据需求自行选择
+
+  ![monkeyDev](./jailbreak_image/jailbreak_29.png)
+
+- 拖入脱壳过的app包到指定的`TargetApp`目录下，可以在
+
+  ![monkeyDev](./jailbreak_image/jailbreak_28.png)
