@@ -941,9 +941,148 @@ static __attribute__((constructor)) void _logosLocalInit() {
 还拿斗鱼为例，把刚刚开发的dylib和app一起装到非越狱机器上。
 
 1. 去苹果开发者后台生成一套证书，appId要选择通配符，device包含要安装的机器，最后生成一个描述文件，下载改名为`embedded.mobileprovision`  (需要付费的开发者账号)
+
 2. 从越狱机器拷贝脱壳.app包 、`douyuTweak.dylib` 动态库、`CydiaSubstrate` 动态库（由于依赖它，所有需要一并拷贝）到mac上
+
 3. 拷贝`embedded.mobileprovision`、`douyuTweak.dylib`、`CydiaSubstrate` 到.app包目录下，和mach-o在同一级。
-4. 关联动态库到mach-o，目的是运行的时候可以执行我们的动态库文件。
+
+4. 关联动态库到mach-o，目的是运行的时候可以执行我们的动态库文件。使用[insert_dylib](https://github.com/Tyilo/insert_dylib)来实现动态库注入
+
+   ```
+   /*
+   Usage: insert_dylib dylib_path binary_path [new_binary_path]
+   Option flags: --inplace --weak --overwrite --strip-codesig --no-strip-codesig --all-yes
+   */
+   
+   // 在.app目录下执行命令
+   // @executable_path 代表可执行文件所在的目录
+   // insert_dylib @executable_path/动态库 可执行文件 新生成可执行文件
+   
+   ➜  DYZB.app insert_dylib @executable_path/douyuTweak.dylib DYZB DYZB
+   DYZB already exists. Overwrite it? [y/n] y
+   Binary is a fat binary with 2 archs.
+   LC_CODE_SIGNATURE load command found. Remove it? [y/n] y
+   LC_CODE_SIGNATURE load command found. Remove it? [y/n] y
+   Added LC_LOAD_DYLIB to all archs in DYZB
+   ➜  DYZB.app 
+   ```
+
+5. 修改动态库的加载路径。 我们通过otool查看可执行文件依赖的动态库
+
+   ```
+   ➜  DYZB.app otool -L DYZB
+   DYZB (architecture arm64):
+   	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+   	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
+   	/usr/lib/libc++abi.dylib (compatibility version 1.0.0, current version 400.17.0)
+   	/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
+   ...
+   ...
+   ...
+   	@executable_path/douyuTweak.dylib (compatibility version 0.0.0, current version 0.0.0)
+   	
+   ```
+
+   此时可以看到我们的动态库已经关联成功了。然后再看douyuTweak.dylib依赖的动态库
+
+   ```shell
+   ➜  DYZB.app otool -L douyuTweak.dylib 
+   douyuTweak.dylib (architecture arm64):
+   	/Library/MobileSubstrate/DynamicLibraries/douyuTweak.dylib (compatibility version 0.0.0, current version 0.0.0)
+   	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+   	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1652.20.0)
+   	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1652.20.0)
+   	
+   	/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+   
+   ```
+
+   可以看到`/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate` 这个路径是在越狱机器上有的，非越狱机器上这个路径是找不到这个文件的。在第三步的时候我们已经把`CydiaSubstrate`拷贝到同级目录下了，所以我们需要在这里修改一下加载路径
+
+   ```
+   // 使用 install_name_tool 工具来修改路径
+   // install_name_tool -change 原来路径 新路径 可执行文件
+   // @loader_path 代表动态库所在的目录
+   
+   ➜  DYZB.app install_name_tool -change /Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate @loader_path/CydiaSubstrate douyuTweak.dylib             
+   ```
+
+   修改成功之后我们再一次使用otool查看
+
+   ```
+   ➜  DYZB.app otool -L douyuTweak.dylib 
+   ...
+   ...
+   	@loader_path/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+   
+   ```
+
+   可以看到动态库依赖路径已经修改成功了。
+
+6. 接下来就是要重签名动态库了。 .app包内的所有动态库、扩展、watch都需要重签名
+
+   - 查看当前电脑可以用的证书，我们选择第一个，用前面一串id就行
+
+     ```
+     ➜  DYZB.app security find-identity -v -p codesigning
+       1) 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B "iPhone Developer: (xxx)"
+       2) 5F2052946CD744E13F98DE5FAEB3DB4483F56FFF "iPhone Distribution: xxx (xxx)"
+       3) 978F840CF7E4BBFBCD9E32953722CBBF7BB018B5 "Mac Developer: xxx@qq.com (xxx)"
+       4) B832B6F319CB6710441E9436A8AB8D62A0F79057 "Apple Development: xxx@qq.com (xxx)"
+          4 valid identities found
+     ```
+
+   - 重签动态库
+
+     ```
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B douyuTweak.dylib 
+     douyuTweak.dylib: replacing existing signature
+     
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B CydiaSubstrate  
+     CydiaSubstrate: replacing existing signature
+     ➜  DYZB.app 
+     ```
+
+     由于斗鱼里有其他的framework，所以要对Frameworks下所以framework重签，如果没有Frameworks文件夹则忽略
+
+     ![framework](./jailbreak_image/jailbreak_25.png)
+
+     ```
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/AdLibrary.framework 
+     Frameworks/AdLibrary.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/P2PiOS.framework  
+     Frameworks/P2PiOS.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/TencentXP2P.framework 
+     Frameworks/TencentXP2P.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/XADLibrary.framework 
+     Frameworks/XADLibrary.framework: replacing existing signature
+     ➜  DYZB.app 
+     ```
+
+7. 最后一步，重签名app。也就是修改这个文件
+
+   ![codesign](./jailbreak_image/jailbreak_24.png)
+
+   - 从`embedded.mobileprovision`文件中提取出`entitlements.plis`t权限文件
+
+     ```
+     security cms -D -i embedded.mobileprovision > temp.plist
+     /usr/libexec/PlistBuddy -x -c 'Print :Entitlements' temp.plist > entitlements.plist
+     
+     ➜  Downloads ls -l | grep entitlement
+     -rw-r--r--@ 1 gyh  staff       453  7 15 13:32 entitlements.plist
+     ➜  Downloads 
+     ```
+
+   - 对app包签名
+
+     ```
+     codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B --entitlements entitlements.plist DYZB.app 
+     ```
+
+     
+
+     
 
 
 
