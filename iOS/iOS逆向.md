@@ -1123,6 +1123,24 @@ MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%
 
   ![monkeyDev](./jailbreak_image/jailbreak_29.png)
 
-- 拖入脱壳过的app包到指定的`TargetApp`目录下，可以在
+- 拖入脱壳过的app包到指定的`TargetApp`目录下，可以在`testAiqiyiDylib.m` 下使用[CaptainHook](https://github.com/rpetrich/CaptainHook)编写，也可以在Logos文件下的`testAiqiyiDylib.xm` 使用logos语法编写。（xm文件第一次xcode不识别，点击右侧变懒选择type为Objective-C++ Source）
 
+  这里我们使用了之前学习的logos语法来编写
+  
   ![monkeyDev](./jailbreak_image/jailbreak_28.png)
+
+- 在build setting中可以做一些设置，开启class_dump编译的时候会默认导出头文件，开启retore_symbol会主动还原符号信息等等
+
+  ![set](./jailbreak_image/jailbreak_30.png)
+
+- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样
+
+  ![debug](./jailbreak_image/jailbreak_31.png)
+
+简单介绍到这里，一个字，强的一笔
+
+
+
+
+
+（完）
