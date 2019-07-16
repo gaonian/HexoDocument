@@ -330,7 +330,7 @@ debugserver只能调试自己开发的app，调试第三方app是没有权限的
 
 - 将重新签名的debugserver放到iPhone `/usr/bin` 目录下
 
-###debugserver使用
+### debugserver使用
 
 - iPhone，debugserver在iPhone上要附加到某一个正在运行的进程中
 
@@ -410,19 +410,737 @@ frame #0: 0x0000000100000edf Test`test at main.m:15:17
 (lldb) image lookup -t Person
 ```
 
+### 还原符号表restore-symbol
 
+[restore-symbol地址](https://github.com/tobefuturer/restore-symbol )。动态调试的时候有时候需要对某个方法打断点，例如`breakpoint set -n "-[Person test]"` ，但是你会发现断点并没有打成功，因为在app打包发布到appstroe的时候编译器会去掉符号的具体信息，所以此时的`[Person test]`是找不到的。
 
-# restore-symbol
+恢复符号表之后就可以针对`Person test` 打断点了，和我们使用xcode开发时一模一样。
 
-https://github.com/tobefuturer/restore-symbol
+- Download source code and compile.
 
-# theos
+```
+git clone --recursive https://github.com/tobefuturer/restore-symbol.git
+cd restore-symbol && make
+./restore-symbol
+```
+
+- Restore symbol using this command. It will output a new mach-o file with symbol.
+
+```
+./restore-symbol /pathto/origin_mach_o_file -o /pathto/mach_o_with_symbol 
+```
+
+把新生成的mach-o覆盖之前的，重新启动，测试即可。
+
+# Theos
 
 逆向过程中，我们在分析完毕基本确认需要修改某个函数之后，剩下的就是写代码去hook了。幸运的是已经有大牛为我们编写了注入拦截函数的工具`Theos` 
 
+[官方wiki](https://github.com/theos/theos/wiki)
+
+## 安装
+
+1. Install the following prerequisites:
+
+   - [Homebrew](https://brew.sh/)
+   - [Xcode](https://itunes.apple.com/us/app/xcode/id497799835?ls=1&mt=12)1 is mandatory. The Command Line Tools package isn’t sufficient for Theos to work. Xcode includes toolchains for all Apple platforms.
+
+   1 Xcode 5.0 or newer. Xcode 4.4 supported, but only when building for ARMv6 (1st/2nd generation iPhone/iPod touch).
+
+   ```
+    brew install ldid xz
+   ```
+
+2. Set up the `THEOS` environment variable:
+
+   ```shell
+    echo "export THEOS=~/theos" >> ~/.bash_profile
+    echo "export PATH=$THEOS/bin:$PATH" >> ~/.bash_profile
+    source ~/.bash_profile
+   ```
+
+   For this change to take effect, you must restart your shell. Open a new tab and do `echo $THEOS` on your shell to check if this is working.
+
+3. Clone Theos to your device:
+
+   ```
+    git clone --recursive https://github.com/theos/theos.git $THEOS
+   ```
+
+## 创建项目
+
+Theos 提供了很多模块来创建不同类型的项目。我们在这里选择`tweak`。
+
+打开终端，选择任意目录。 输入 “ nic.pl ” ，选择10 tweak项目，按回车之后会生成一些配置需要填写，填写完毕之后就会在当前目录下生成一个项目，这个项目就是我们要编写代码的tweak项目。
+
+![tweak](./jailbreak_image/jailbreak_15.png)
+
+配置选项说明：
+
+- `Project Name (required)` : 项目名称
+
+- `Package Name [com.yourcompany.testtweak]` : 创建包得唯一ID，回车即可，有默认值
+
+- `Author/Maintainer Name` : 创建者名称，默认mac用户名
+
+- `MobileSubstrate Bundle filter` : 需要注入的目标应用的Bundle ID
+
+- `List of applications to terminate upon installation` : 安装成功后杀掉指定的进程，回车即可
+
+  
+
+项目结构：
+
+![tweak](./jailbreak_image/jailbreak_16.png)
+
+- `Makefile` : makefile文件
+
+  ```makefile
+  INSTALL_TARGET_PROCESSES = SpringBoard
+  
+  include $(THEOS)/makefiles/common.mk
+  
+  TWEAK_NAME = testTweak
+  
+  testTweak_FILES = Tweak.x
+  testTweak_CFLAGS = -fobjc-arc
+  
+  include $(THEOS_MAKE_PATH)/tweak.mk
+  ```
+
+  需要在文件顶部加入连接phone的环境变量
+
+  ```makefile
+  export THEOS_DEVICE_IP=127.0.0.1
+  export THEOS_DEVICE_PORT=10010
+  ```
+
+  也可以设置全局环境变量，这样就不需要每个文件单独写了
+
+  ```
+  echo "export THEOS_DEVICE_IP=127.0.0.1" >> ~/.bash_profile
+  echo "export THEOS_DEVICE_PORT=10010" >> ~/.bash_profile
+  source ~/.bash_profile
+  ```
+
+- `Tweak.x` : 编写代码的文件
+
+- `control` : 指定deb包得一些信息，包括名字，描述等
+
+  ```
+  Package: com.yourcompany.testtweak
+  Name: testTweak
+  Depends: mobilesubstrate
+  Version: 0.0.1
+  Architecture: iphoneos-arm
+  Description: An awesome MobileSubstrate tweak!
+  Maintainer: gyh
+  Author: gyh
+  Section: Tweaks
+  ```
+
+- `testTweak.plist` : 用户指定需要注入的目标文件的Bundle ID
+
+  ```
+  { Filter = { Bundles = ( "com.qiyi.iphone" ); }; }
+  ```
+
+
+
+## 基础语法介绍
+
+- **%hook 类名**    **%end**
+
+  hook指定的类，并在里面写需要hook的方法，比如说想hook ViewController 的viewDidLoad方法
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+  
+   }
+  
+  %end
+  ```
+
+  这样就hook成功viewDidLoad方法了，当app调用viewDidLoad的时候，会先来到我们这个地方。所以就可以在此时做一些事情。 注意，%hook 和 %end是成对出现的，%end代表hook一个类的结束
+
+- **%log**
+
+  打印方法调用详情，会把传入的参数都打印出来。可通过mac的控制台应用查看phone输出的日志
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+   	%log;
+   }
+  
+  - (void)messageName:(int)arg1 arg2:(int)arg2 {
+  	%log;
+  }
+  
+  %end
+  ```
+
+- **%orig**
+
+  调用原来的方法，使程序走回原来的方法，不影响正常流程
+
+  ```
+  %hook ViewController
+  
+   - (void)viewDidLoad {
+   	%log;
+  	%orig;
+   }
+  
+  - (void)messageName:(int)arg1 arg2:(int)arg2 {
+  	%log;
+  	%orig;
+  }
+  
+  %end
+  ```
+
+- **%new**
+
+  如果需要给当前类添加一个新的方法，就需要使用`%new` 来实现
+
+  ```
+  %new
+  - (void)newMethod {
+  }
+  ```
+
+- **%c**
+
+  用来生成某个类的对象方法，%c(ClassName) ，实质上是调用了oc的objc_getClass()方法
+
+  ```
+  SettingController *svc = [[%c(SettingController) alloc] init];
+  
+  // 这种写法是报错的 ×
+  SettingController *svc = [[SettingController alloc] init];
+  ```
+
+- **%ctor** **%dtor**
+
+  - %ctor 程序启动加载动态库时调用，做一些初始化动作
+  - %dtor 程序退出的时候调用，处理一些尾巴
+  - %ctor %dtor 相当于构造函数和析构函数
+
+  ```
+  %ctor {
+  	printf("开始\n");
+  }
+  
+  %dtor {
+  	printf("结束\n");
+  }
+  ```
+
+- **logify.pl**
+
+  logify.pl可以将一个头文件所有方法快速的打上log，调试的时候可以通过控制台看到每一个方法的调用
+
+  ```shell
+  ➜  DouYuHeaders logify.pl DYPendantContainarView.h > DYPendantContainarView.mm
+  
+  ➜  DouYuHeaders ls -l | grep DYPendantContainarView  
+  -rw-r--r--  1 gyh  staff    3375  7 11 00:18 DYPendantContainarView.h
+  -rw-r--r--  1 gyh  staff    4618  7 14 11:45 DYPendantContainarView.mm
+  ➜  DouYuHeaders 
+  ```
+
+  可以看到会在当前目录下生成一个.mm文件，每一个方法都默认添加了%log，极大提高了分析的效率
+
+  ```
+  %hook DYPendantContainarView
+  
+  + (void)initialize { %log; %orig; }
+  - (void)setKvoController:(FBKVOController *)kvoController { %log; %orig; }
+  - (FBKVOController *)kvoController { %log; FBKVOController * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setPendantConfig:(NSDictionary *)pendantConfig { %log; %orig; }
+  - (NSDictionary *)pendantConfig { %log; NSDictionary * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setDisplayType:(long long )displayType { %log; %orig; }
+  - (long long )displayType { %log; long long  r = %orig; HBLogDebug(@" = %lld", r); return r; }
+  - (void)setTipViews:(NSMutableArray *)tipViews { %log; %orig; }
+  - (NSMutableArray *)tipViews { %log; NSMutableArray * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setMoreButton:(UIButton *)moreButton { %log; %orig; }
+  - (UIButton *)moreButton { %log; UIButton * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  - (void)setScrollView:(UIScrollView *)scrollView { %log; %orig; }
+  - (UIScrollView *)scrollView { %log; UIScrollView * r = %orig; HBLogDebug(@" = %@", r); return r; }
+  ...
+  ...
+  ...
+  
+  %end
+  ```
+
+更多语法可参考Logos语法文档 http://iphonedevwiki.net/index.php/Logos
+
+## 编写代码
+
+了解基础的语法之后，我们来根据刚刚所学的来做一个小的练习。这里以斗鱼app为例，去除直播页面的小广告，见下图
+
+![iqiyi](./jailbreak_image/jailbreak_17.png)
+
+
+
+1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，初步思考，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
+
+   ![Reveal](./jailbreak_image/jailbreak_18.png)
+
+   
+
+2. 我们把脱过壳的斗鱼mach-o文件从手机拷贝到电脑上，通过class-dump导出头文件，成功之后把头文件拖到sublime中，找到刚刚的 `DYPendantContainarView` 这个类。
+
+3. 简单编写代码。对于这种附加到上层的view，hook最简单的办法就是初始化的时候直接return nil，创建不成功，自然不会显示了。
+
+   ```
+   %hook DYPendantContainarView
+   
+   - (id)initWithFrame:(struct CGRect)arg1 {
+   	NSLog(@"-------- initWithFrame ------ ");
+   	return nil;
+   }
+   
+   %end
+   
+   %ctor {
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   	NSLog(@"----斗鱼 hook ------");
+   }
+   ```
+
+
+## 编译打包安装
+
+在上一步我们已经分析完，代码也写完了，这一步我们做的就是如何把刚才写的代码添加到手机上并起作用呢。
+
+代码写完之后我们要执行三步操作
+
+1. `make` 命令执行makefile编译
+
+2. ```shell
+   ➜  douyutweak make
+   > Making all for tweak douyuTweak…
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (armv7)…
+   ==> Linking tweak douyuTweak (armv7)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/armv7/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64)…
+   ==> Linking tweak douyuTweak (arm64)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64/Tweak.x.m
+   ==> Preprocessing Tweak.x…
+   ==> Compiling Tweak.x (arm64e)…
+   ==> Linking tweak douyuTweak (arm64e)…
+   ld: warning: OS version (6.0.0) too small, changing to 7.0.0
+   ld: warning: building for iOS, but linking in .tbd file (/Users/gyh/theos/vendor/lib/CydiaSubstrate.framework/CydiaSubstrate.tbd) built for iOS Simulator
+   ==> Generating debug symbols for douyuTweak…
+   rm /Users/gyh/Desktop/douyutweak/.theos/obj/debug/arm64e/Tweak.x.m
+   ==> Merging tweak douyuTweak…
+   ==> Signing douyuTweak…
+   ➜  douyutweak 
+   ```
+
+2. 编译完成之后打包成deb，会在packages文件夹下生成一个deb包
+
+   ```shell
+   ➜  douyutweak make package
+   > Making all for tweak douyuTweak…
+   make[2]: Nothing to be done for `internal-library-compile'.
+   > Making stage for tweak douyuTweak…
+   dm.pl: building package `com.yourcompany.douyutweak:iphoneos-arm' in `./packages/com.yourcompany.douyutweak_0.0.1-7+debug_iphoneos-arm.deb'
+   ➜  douyutweak 
+   ```
+
+3. 安装
+
+   ```
+   ➜  douyutweak make install
+   ==> Installing…
+   (Reading database ... 4267 files and directories currently installed.)
+   Preparing to replace com.yourcompany.douyutweak 0.0.1-6+debug (using /tmp/_theos_install.deb) ...
+   Unpacking replacement com.yourcompany.douyutweak ...
+   Setting up com.yourcompany.douyutweak (0.0.1-7+debug) ...
+   ==> Unloading SpringBoard…
+   ➜  douyutweak 
+   ```
+
+   执行完成之后会重启SpringBoard，插件会安装在`/Library/MobileSubstrate/DynamicLibraries` 这个位置下
+
+   ![tweak](./jailbreak_image/jailbreak_22.png)
+
+以上三步就将编写好的代码打成包安装到手机上，接下来就是验证刚才写的代码了。
+
+注意，以上三步操作也可以合成一步操作
+
+```
+➜  make package install        
+```
+
+## 运行
+
+启动app，此时Cydia Substrate会根据plist中的Bundle ID将我们的动态库插入到对应的app中。
+
+打开系统控制台，查看手机的日志。可以看到先加载了我们的动态库，紧接着我们的构造函数就调用了，此时说明已经成功的hook了。
+
+![log](./jailbreak_image/jailbreak_20.png)
+
+
+
+接下来就进入直播界面，看一下是否执行`DYPendantContainarView` 的initwihitframe方法
+
+![tweak](./jailbreak_image/jailbreak_21.png)
+
+可以看到我们自己的日志已经打出来了，说明我们之前的猜想都是正确的，如果没问题的话广告的view没有创建成功，则广告不会展示，看下图
+
+![ui](./jailbreak_image/jailbreak_19.png)
+
+## 总结
+
+`make` 的时候theos会把我们使用logos语法编写的tweak代码转换成c++代码，并打成动态库dylib文件。可以使用`logos.pl` 来主动进行转换查看
+
+```shell
+➜  douyutweak logos.pl Tweak.x > Tweak.mm
+```
+
+拿刚刚斗鱼的例子来看，把代码重定向输出到tweak.mm文件中
+
+```c++
+#line 1 "Tweak.x"
+
+#include <substrate.h>
+#if defined(__clang__)
+#if __has_feature(objc_arc)
+#define _LOGOS_SELF_TYPE_NORMAL __unsafe_unretained
+#define _LOGOS_SELF_TYPE_INIT __attribute__((ns_consumed))
+#define _LOGOS_SELF_CONST const
+#define _LOGOS_RETURN_RETAINED __attribute__((ns_returns_retained))
+#else
+#define _LOGOS_SELF_TYPE_NORMAL
+#define _LOGOS_SELF_TYPE_INIT
+#define _LOGOS_SELF_CONST
+#define _LOGOS_RETURN_RETAINED
+#endif
+#else
+#define _LOGOS_SELF_TYPE_NORMAL
+#define _LOGOS_SELF_TYPE_INIT
+#define _LOGOS_SELF_CONST
+#define _LOGOS_RETURN_RETAINED
+#endif
+
+@class DYPendantContainarView; 
+static DYPendantContainarView* (*_logos_orig$_ungrouped$DYPendantContainarView$initWithFrame$)(_LOGOS_SELF_TYPE_INIT DYPendantContainarView*, SEL, struct CGRect) _LOGOS_RETURN_RETAINED; static DYPendantContainarView* _logos_method$_ungrouped$DYPendantContainarView$initWithFrame$(_LOGOS_SELF_TYPE_INIT DYPendantContainarView*, SEL, struct CGRect) _LOGOS_RETURN_RETAINED; 
+
+#line 3 "Tweak.x"
+
+
+static DYPendantContainarView* _logos_method$_ungrouped$DYPendantContainarView$initWithFrame$(_LOGOS_SELF_TYPE_INIT DYPendantContainarView* __unused self, SEL __unused _cmd, struct CGRect arg1) _LOGOS_RETURN_RETAINED {
+	NSLog(@"-------- initWithFrame ------ ");
+	return nil;
+}
+
+
+
+static __attribute__((constructor)) void _logosLocalCtor_ce8e2604(int __unused argc, char __unused **argv, char __unused **envp) {
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+	NSLog(@"----斗鱼 hook ------");
+}
+static __attribute__((constructor)) void _logosLocalInit() {
+{Class _logos_class$_ungrouped$DYPendantContainarView = objc_getClass("DYPendantContainarView"); MSHookMessageEx(_logos_class$_ungrouped$DYPendantContainarView, @selector(initWithFrame:), (IMP)&_logos_method$_ungrouped$DYPendantContainarView$initWithFrame$, (IMP*)&_logos_orig$_ungrouped$DYPendantContainarView$initWithFrame$);} }
+#line 19 "Tweak.x"
+```
+
+`make package` 会把动态库打包成deb包，`make install` 将deb包传到手机，cydia接手，把deb包安装到指定文件夹。 
+
+打开app的时候，Cydia Substrate会根据plist文件查看是否是要hook的进程，如果BundleID一致，则会在启动的时候插入我们自己的动态库，这样就达到了hook的目的。
+
+注意: 
+
+1. theos的tweak并不会对可执行文件进行修改，只是在内存中修改逻辑
+
+2. 只有在越狱机器中才有权限在启动时插入动态库，在[dyld源码](https://opensource.apple.com/tarballs/dyld/)中可以看到这个逻辑）
+
+
+
 # 重签名
+
+## 背景
+
+​		为了确保用户安装到手机上的应用都是经过认证的合法的应用，苹果有一套自己的签名机制，所有安装到设备中的应用必须是拥有合法签名的应用。从appstroe下载的应用和真机调试的应用都是受信任的。 
+
+​		我们之前这些步骤能顺利进行都是因为是基于越狱机器的，越狱机器是不会去验证这些签名证书等信息的。但是我们如果想要针对非越狱机器进行逆向应该怎么办呢？之前说过，在非越狱机器上我们是没有权限动态插入动态库，也不能访问手机文件夹。唯一的做法就是修改mach-o文件，把我们的动态库插入到mach-o文件内，但是还有问题就是一旦修改了mach-o文件，app原来的签名信息就被破坏了，安装的时候就不能通过验证了。所有我们需要做的就是修改完mach-o之后把签名信息都重新修改，改成手机可信任的签名，这样就可以安装了。这就引出了重签名这个机制
+
+## 原理
+
+​		在平时的开发中，我们想要进行真机调试，需要进行一步步复杂的操作，那么这些操作分别是什么意思，为什么要这样做？
+
+首先我们来看一下`CertificateSigningRequest.certSigningRequest` `ios_development.cer`   `entitlements` `*.mobileprovision` 这几个文件都代表着什么
+
+- `CertificateSigningRequest.certSigningRequest`  申请者的公钥信息（相当于mac公钥），包含了申请时填写的邮箱，name信息等。同时生成的还有私钥，公钥和私钥是一一对应的
+
+- `ios_development.cer` 通过mac公钥，添加账号信息，再通过哈希算法生成一个信息摘要，最后再通过苹果的私钥进行加密，生成一个cer证书。cer证书里面包括了 `mac公钥`和`苹果私钥加密的数字签名` 
+
+  苹果的私钥存在于苹果后台，公钥存在于每一台iphone，用于解密验证
+
+- `entitlements` 授权文件，其中列出了app哪些行为会被允许，哪些行为会被拒绝。在Xcode中的Capabilities进行设置后，相关条目会添加到授权文件中。
+
+  ```
+  ➜  Desktop codesign -d --entitlements - DYZB 
+  Executable=/Users/gyh/Desktop/DYZB
+  ??qq<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+  	<key>com.apple.developer.networking.wifi-info</key>
+  	<true/>
+  	<key>keychain-access-groups</key>
+  	<array>
+  		<string>xxx.tv.douyu.live</string>
+  		<string>xxx.kc.group.dy</string>
+  	</array>
+  	<key>com.apple.developer.team-identifier</key>
+  	<string>xxx</string>
+  	<key>com.apple.external-accessory.wireless-configuration</key>
+  	<true/>
+  	<key>application-identifier</key>
+  	<string>xxx.tv.douyu.live</string>
+  	<key>aps-environment</key>
+  	<string>production</string>
+  	<key>com.apple.security.application-groups</key>
+  	<array>
+  		<string>group.tv.douyu.live</string>
+  	</array>
+  </dict>
+  </plist>%                                                                          ➜  Desktop 
+  ```
+
+- `*.mobileprovision`  描述文件，包含了前面的`证书信息` 、`appId` 、`devices`、`entitlements` app在打包的时候会把通过苹果私钥加密过的配置文件（`embedded.mobileprovision` ）拷贝到.app目录下。
+
+  ```
+  // 查看mobileprovision描述文件
+  security cms -D -i embedded.mobileprovision 
+  ```
+
+
+
+接下来就是如何验证签名和解密了
+
+- app在启动的时候，先通过苹果公钥把描述文件解出来，一一验证配置devices、appid、entitlements信息，任何一样不符合就无法安装。
+
+- 接下来验证cer证书信息，通过苹果公钥对证书的数字签名进行解密，得到一个信息摘要和mac的公钥和账号信息。把mac的公钥和账号信息通过哈希算法生成一个信息摘要，拿这个信息摘要和我们得到的信息摘要进行对应，如果一致，则证明未被篡改，我们拿到的信息是可信任的
+
+- 取出刚刚拿到的mac公钥对可执行文件进行解密并验证，这样就完成了验证，成功安装运行
+
+  ![sign](./jailbreak_image/jailbreak_23.png)
+
+## 实现
+
+了解了上面的签名机制之后，我们知道了 一旦修改mach-o文件，则签名信息就会被破坏，完成不了安装。所以我们要对修改过的mach-o文件进行重签名，也就是用自己的公钥和证书去重新签名，这样就可以安装到自己手机上。
+
+还拿斗鱼为例，把刚刚开发的dylib和app一起装到非越狱机器上。
+
+1. 去苹果开发者后台生成一套证书，appId要选择通配符，device包含要安装的机器，最后生成一个描述文件，下载改名为`embedded.mobileprovision`  (需要付费的开发者账号)
+
+2. 从越狱机器拷贝脱壳.app包 、`douyuTweak.dylib` 动态库、`CydiaSubstrate` 动态库（由于依赖它，所有需要一并拷贝）到mac上
+
+3. 拷贝`embedded.mobileprovision`、`douyuTweak.dylib`、`CydiaSubstrate` 到.app包目录下，和mach-o在同一级。
+
+4. 关联动态库到mach-o，目的是运行的时候可以执行我们的动态库文件。使用[insert_dylib](https://github.com/Tyilo/insert_dylib)来实现动态库注入
+
+   ```
+   /*
+   Usage: insert_dylib dylib_path binary_path [new_binary_path]
+   Option flags: --inplace --weak --overwrite --strip-codesig --no-strip-codesig --all-yes
+   */
+   
+   // 在.app目录下执行命令
+   // @executable_path 代表可执行文件所在的目录
+   // insert_dylib @executable_path/动态库 可执行文件 新生成可执行文件
+   
+   ➜  DYZB.app insert_dylib @executable_path/douyuTweak.dylib DYZB DYZB
+   DYZB already exists. Overwrite it? [y/n] y
+   Binary is a fat binary with 2 archs.
+   LC_CODE_SIGNATURE load command found. Remove it? [y/n] y
+   LC_CODE_SIGNATURE load command found. Remove it? [y/n] y
+   Added LC_LOAD_DYLIB to all archs in DYZB
+   ➜  DYZB.app 
+   ```
+
+5. 修改动态库的加载路径。 我们通过otool查看可执行文件依赖的动态库
+
+   ```
+   ➜  DYZB.app otool -L DYZB
+   DYZB (architecture arm64):
+   	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+   	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 400.9.4)
+   	/usr/lib/libc++abi.dylib (compatibility version 1.0.0, current version 400.17.0)
+   	/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
+   ...
+   ...
+   ...
+   	@executable_path/douyuTweak.dylib (compatibility version 0.0.0, current version 0.0.0)
+   	
+   ```
+
+   此时可以看到我们的动态库已经关联成功了。然后再看douyuTweak.dylib依赖的动态库
+
+   ```shell
+   ➜  DYZB.app otool -L douyuTweak.dylib 
+   douyuTweak.dylib (architecture arm64):
+   	/Library/MobileSubstrate/DynamicLibraries/douyuTweak.dylib (compatibility version 0.0.0, current version 0.0.0)
+   	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+   	/System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1652.20.0)
+   	/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1652.20.0)
+   	
+   	/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+   
+   ```
+
+   可以看到`/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate` 这个路径是在越狱机器上有的，非越狱机器上这个路径是找不到这个文件的。在第三步的时候我们已经把`CydiaSubstrate`拷贝到同级目录下了，所以我们需要在这里修改一下加载路径
+
+   ```
+   // 使用 install_name_tool 工具来修改路径
+   // install_name_tool -change 原来路径 新路径 可执行文件
+   // @loader_path 代表动态库所在的目录
+   
+   ➜  DYZB.app install_name_tool -change /Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate @loader_path/CydiaSubstrate douyuTweak.dylib             
+   ```
+
+   修改成功之后我们再一次使用otool查看
+
+   ```
+   ➜  DYZB.app otool -L douyuTweak.dylib 
+   ...
+   ...
+   	@loader_path/CydiaSubstrate (compatibility version 0.0.0, current version 0.0.0)
+   
+   ```
+
+   可以看到动态库依赖路径已经修改成功了。
+
+6. 接下来就是要重签名动态库了。 .app包内的所有动态库、扩展、watch都需要重签名
+
+   - 查看当前电脑可以用的证书，我们选择第一个，用前面一串id就行
+
+     ```
+     ➜  DYZB.app security find-identity -v -p codesigning
+       1) 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B "iPhone Developer: (xxx)"
+       2) 5F2052946CD744E13F98DE5FAEB3DB4483F56FFF "iPhone Distribution: xxx (xxx)"
+       3) 978F840CF7E4BBFBCD9E32953722CBBF7BB018B5 "Mac Developer: xxx@qq.com (xxx)"
+       4) B832B6F319CB6710441E9436A8AB8D62A0F79057 "Apple Development: xxx@qq.com (xxx)"
+          4 valid identities found
+     ```
+
+   - 重签动态库
+
+     ```
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B douyuTweak.dylib 
+     douyuTweak.dylib: replacing existing signature
+     
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B CydiaSubstrate  
+     CydiaSubstrate: replacing existing signature
+     ➜  DYZB.app 
+     ```
+
+     由于斗鱼里有其他的framework，所以要对Frameworks下所以framework重签，如果没有Frameworks文件夹则忽略
+
+     ![framework](./jailbreak_image/jailbreak_25.png)
+
+     ```
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/AdLibrary.framework 
+     Frameworks/AdLibrary.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/P2PiOS.framework  
+     Frameworks/P2PiOS.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/TencentXP2P.framework 
+     Frameworks/TencentXP2P.framework: replacing existing signature
+     ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/XADLibrary.framework 
+     Frameworks/XADLibrary.framework: replacing existing signature
+     ➜  DYZB.app 
+     ```
+
+7. 最后一步，重签名app。也就是修改这个文件
+
+   ![codesign](./jailbreak_image/jailbreak_24.png)
+
+   - 从`embedded.mobileprovision`文件中提取出`entitlements.plis`t权限文件
+
+     ```
+     security cms -D -i embedded.mobileprovision > temp.plist
+     /usr/libexec/PlistBuddy -x -c 'Print :Entitlements' temp.plist > entitlements.plist
+     
+     ➜  Downloads ls -l | grep entitlement
+     -rw-r--r--@ 1 gyh  staff       453  7 15 13:32 entitlements.plist
+     ➜  Downloads 
+     ```
+
+   - 对app包签名
+
+     ```
+     codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B --entitlements entitlements.plist DYZB.app 
+     ```
+
+   - 也可以使用 [ios-app-signer](https://github.com/DanTheMan827/ios-app-signer)重签名工具进行重签名，配置完点击start自动重签，并生成ipa包
+
+     ![signer](./jailbreak_image/jailbreak_27.png)
+   
+     
+   
+8. 安装。创建Payload文件夹，拖入.app包，压缩Payload，压缩之后为zip，修改zip为ipa。通过`iFunBox`或者其他第三方工具安装到手机。安装成功，大功告成
+
+   ![ipa](./jailbreak_image/jailbreak_26.png)
 
 
 
 # MonkeyDev
 
+MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%94%E7%94%A8%E9%80%86%E5%90%91%E4%B8%8E%E5%AE%89%E5%85%A8/22643389?fr=aladdin](https://baike.baidu.com/item/iOS应用逆向与安全/22643389?fr=aladdin)) 的作者开发的一套逆向工具，使用xcode完成一切操作，功能强大，使用方便。 [github地址](https://github.com/AloneMonkey/MonkeyDev)
+
+- 可以使用Xcode开发CaptainHook Tweak、Logos Tweak 和 Command-line Tool，在越狱机器开发插件，这是原来iOSOpenDev功能的迁移和改进。
+- 只需拖入一个砸壳应用，自动集成class-dump、restore-symbol、Reveal、Cycript和注入的动态库并重签名安装到非越狱机器。
+- 支持调试自己编写的动态库和第三方App
+- 支持通过CocoaPods第三方应用集成SDK以及非越狱插件，简单来说就是通过CocoaPods搭建了一个非越狱插件商店。
+
+下面简单介绍一下使用流程。具体的安装和配置说明请查看[wiki]([https://github.com/AloneMonkey/MonkeyDev/wiki/%E5%AE%89%E8%A3%85](https://github.com/AloneMonkey/MonkeyDev/wiki/安装)) ，十分具体。
+
+- 安装完成之后，新建xcode项目的时候会发现下面多了一排功能按钮可供选择，根据需求自行选择
+
+  ![monkeyDev](./jailbreak_image/jailbreak_29.png)
+
+- 拖入脱壳过的app包到指定的`TargetApp`目录下，可以在`testAiqiyiDylib.m` 下使用[CaptainHook](https://github.com/rpetrich/CaptainHook)编写，也可以在Logos文件下的`testAiqiyiDylib.xm` 使用logos语法编写。（xm文件第一次xcode不识别，点击右侧变懒选择type为Objective-C++ Source）
+
+  这里我们使用了之前学习的logos语法来编写
+  
+  ![monkeyDev](./jailbreak_image/jailbreak_28.png)
+
+- 在build setting中可以做一些设置，开启class_dump编译的时候会默认导出头文件，开启retore_symbol会主动还原符号信息等等
+
+  ![set](./jailbreak_image/jailbreak_30.png)
+
+- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里，一个字，强的一笔！
+
+  ![debug](./jailbreak_image/jailbreak_31.png)
+
+
+
+
+
+
+
+（完）

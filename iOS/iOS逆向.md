@@ -1133,11 +1133,11 @@ MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%
 
   ![set](./jailbreak_image/jailbreak_30.png)
 
-- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样
+- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里，一个字，强的一笔！
 
   ![debug](./jailbreak_image/jailbreak_31.png)
 
-简单介绍到这里，一个字，强的一笔
+
 
 
 
