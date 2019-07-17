@@ -19,7 +19,7 @@ title : iOS 逆向
 
 ## 目录结构 
 
-![文件目录](./jailbreak_image/jailbreak_1.png)
+![文件目录](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_1.png)
 
 - `Applications`  存放所有系统的App和来自Cydia的App，不包括从App Store下载的App
 - `Library`  系统资源，用户设置。系统日志、系统自带铃声等。重要目录为`Library/MobileSubstrate`，里面存放的是所有基于Cydia Substrate的插件，之后自己开发的插件也是存放在此目录下
@@ -114,11 +114,11 @@ mac上有一个服务程序`usbmuxd`，可以将mac的数据通过USB传输到iP
 
 Cycript 是一个允许开发者使用Objective-C++ 和 JavaScript 组合语法查看及修改运行时App内存信息的工具。官网 http://www.cycript.org/ 提供了一些经典使用方法
 
-![cycript](./jailbreak_image/jailbreak_2.png)
+![cycript](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_2.png)
 
 - 在iPhone Cydia中搜索Cycript并安装
 
-  ![cycript](./jailbreak_image/jailbreak_4.png)
+  ![cycript](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_4.png)
 
 - 基本使用
 
@@ -188,7 +188,7 @@ Cycript 是一个允许开发者使用Objective-C++ 和 JavaScript 组合语法�
 
   在MachOView中查看`Load Commands` -> `LC_ENCRYPTION_INFO` -> `Crypt ID` ，0代表未加密，1代表加密
 
-  ![MachOView](./jailbreak_image/jailbreak_7.png)
+  ![MachOView](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_7.png)
 
 - 通过otool命令查看
 
@@ -231,7 +231,7 @@ iPhone:~ root#
 
 - https://github.com/stefanesser/dumpdecrypted ，下载源代码，然后切换到目录下，执行`make` 进行编译，编译完成会生成一个`dumpdecrypted.dylib` 动态库文件
 
-![dumpdecrypted](./jailbreak_image/jailbreak_5.png)
+![dumpdecrypted](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_5.png)
 
 - 将dylib拷贝到iPhone上`/var/root` 目录下，连接iPhone，终端进入dylib所在目录，使用环境变量`DYLD_INSERT_LIBRARIES` 将dylib注入到需要脱壳的可执行文件
 
@@ -239,7 +239,7 @@ iPhone:~ root#
 
   `xx.decrypted`就是脱壳后的ipa文件
 
-![dumpdecrypted](./jailbreak_image/jailbreak_6.png)
+![dumpdecrypted](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_6.png)
 
 # class-dump
 
@@ -261,7 +261,7 @@ class-dump -H 可执行文件 -o 生成头文件存放目录
 2019-07-07 18:22:21.618 class-dump[10899:565880] Warning: Parsing method types failed, SetNofityTarget:
 ```
 
-![headers](./jailbreak_image/jailbreak_8.png)
+![headers](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_8.png)
 
 # Reveal
 
@@ -271,21 +271,21 @@ Reveal是iOS上用于查看程序界面结构和调试界面的工具，和xcode
 
 - 在iPhone Cydia中搜索`Reveal Loader` 安装，安装成功之后在系统设置直接会有 Reveal 选项，点击进入可以选择要调试的app
 
-  ![Reveal](./jailbreak_image/jailbreak_9.png)
+  ![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_9.png)
 
-  ![Reveal](./jailbreak_image/jailbreak_10.png)
+  ![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_10.png)
 
 - 找到mac的Reveal中的RevealServer文件，覆盖iPhone的`/Library/RHRevealLoader/RevealServer` 文件，重启iPhone
 
-  ![Reveal](./jailbreak_image/jailbreak_11.png)
+  ![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_11.png)
 
-![Reveal](./jailbreak_image/jailbreak_12.png)
+![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_12.png)
 
 
 
 安装成功之后在iPhone上打开进程，可以直接在Reveal中选择调试
 
-![Reveal](./jailbreak_image/jailbreak_13.png)
+![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_13.png)
 
 
 
@@ -293,7 +293,7 @@ Reveal是iOS上用于查看程序界面结构和调试界面的工具，和xcode
 
 Hopper 是一款反汇编工具，提供Mac和Linux版本。Hopper可以显示被分析文件的反汇编代码、流程图及伪代码，也可以直接修改汇编指令，生成新的可执行文件
 
-![Hopper](./jailbreak_image/jailbreak_14.png)
+![Hopper](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_14.png)
 
 # 动态调试
 
@@ -473,7 +473,7 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 打开终端，选择任意目录。 输入 “ nic.pl ” ，选择10 tweak项目，按回车之后会生成一些配置需要填写，填写完毕之后就会在当前目录下生成一个项目，这个项目就是我们要编写代码的tweak项目。
 
-![tweak](./jailbreak_image/jailbreak_15.png)
+![tweak](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_15.png)
 
 配置选项说明：
 
@@ -491,7 +491,7 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 项目结构：
 
-![tweak](./jailbreak_image/jailbreak_16.png)
+![tweak](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_16.png)
 
 - `Makefile` : makefile文件
 
@@ -684,13 +684,13 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 了解基础的语法之后，我们来根据刚刚所学的来做一个小的练习。这里以斗鱼app为例，去除直播页面的小广告，见下图
 
-![iqiyi](./jailbreak_image/jailbreak_17.png)
+![iqiyi](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_17.png)
 
 
 
 1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，初步思考，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
 
-   ![Reveal](./jailbreak_image/jailbreak_18.png)
+   ![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_18.png)
 
    
 
@@ -781,7 +781,7 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
    执行完成之后会重启SpringBoard，插件会安装在`/Library/MobileSubstrate/DynamicLibraries` 这个位置下
 
-   ![tweak](./jailbreak_image/jailbreak_22.png)
+   ![tweak](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_22.png)
 
 以上三步就将编写好的代码打成包安装到手机上，接下来就是验证刚才写的代码了。
 
@@ -797,17 +797,17 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 打开系统控制台，查看手机的日志。可以看到先加载了我们的动态库，紧接着我们的构造函数就调用了，此时说明已经成功的hook了。
 
-![log](./jailbreak_image/jailbreak_20.png)
+![log](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_20.png)
 
 
 
 接下来就进入直播界面，看一下是否执行`DYPendantContainarView` 的initwihitframe方法
 
-![tweak](./jailbreak_image/jailbreak_21.png)
+![tweak](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_21.png)
 
 可以看到我们自己的日志已经打出来了，说明我们之前的猜想都是正确的，如果没问题的话广告的view没有创建成功，则广告不会展示，看下图
 
-![ui](./jailbreak_image/jailbreak_19.png)
+![ui](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_19.png)
 
 ## 总结
 
@@ -948,7 +948,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
 - 取出刚刚拿到的mac公钥对可执行文件进行解密并验证，这样就完成了验证，成功安装运行
 
-  ![sign](./jailbreak_image/jailbreak_23.png)
+  ![sign](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_23.png)
 
 ## 实现
 
@@ -1061,7 +1061,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
      由于斗鱼里有其他的framework，所以要对Frameworks下所以framework重签，如果没有Frameworks文件夹则忽略
 
-     ![framework](./jailbreak_image/jailbreak_25.png)
+     ![framework](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_25.png)
 
      ```
      ➜  DYZB.app codesign -fs 6ADFF1FE0C8AF2745F58972D564E0AC95CB7927B Frameworks/AdLibrary.framework 
@@ -1077,7 +1077,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
 7. 最后一步，重签名app。也就是修改这个文件
 
-   ![codesign](./jailbreak_image/jailbreak_24.png)
+   ![codesign](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_24.png)
 
    - 从`embedded.mobileprovision`文件中提取出`entitlements.plis`t权限文件
 
@@ -1098,13 +1098,13 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
    - 也可以使用 [ios-app-signer](https://github.com/DanTheMan827/ios-app-signer)重签名工具进行重签名，配置完点击start自动重签，并生成ipa包
 
-     ![signer](./jailbreak_image/jailbreak_27.png)
+     ![signer](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_27.png)
    
      
    
 8. 安装。创建Payload文件夹，拖入.app包，压缩Payload，压缩之后为zip，修改zip为ipa。通过`iFunBox`或者其他第三方工具安装到手机。安装成功，大功告成
 
-   ![ipa](./jailbreak_image/jailbreak_26.png)
+   ![ipa](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_26.png)
 
 
 
@@ -1121,21 +1121,21 @@ MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%
 
 - 安装完成之后，新建xcode项目的时候会发现下面多了一排功能按钮可供选择，根据需求自行选择
 
-  ![monkeyDev](./jailbreak_image/jailbreak_29.png)
+  ![monkeyDev](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_29.png)
 
 - 拖入脱壳过的app包到指定的`TargetApp`目录下，可以在`testAiqiyiDylib.m` 下使用[CaptainHook](https://github.com/rpetrich/CaptainHook)编写，也可以在Logos文件下的`testAiqiyiDylib.xm` 使用logos语法编写。（xm文件第一次xcode不识别，点击右侧变懒选择type为Objective-C++ Source）
 
   这里我们使用了之前学习的logos语法来编写
   
-  ![monkeyDev](./jailbreak_image/jailbreak_28.png)
+  ![monkeyDev](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_28.png)
 
 - 在build setting中可以做一些设置，开启class_dump编译的时候会默认导出头文件，开启retore_symbol会主动还原符号信息等等
 
-  ![set](./jailbreak_image/jailbreak_30.png)
+  ![set](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_30.png)
 
 - 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里，一个字，强的一笔！
 
-  ![debug](./jailbreak_image/jailbreak_31.png)
+  ![debug](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_31.png)
 
 
 
