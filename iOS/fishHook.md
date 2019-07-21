@@ -163,11 +163,40 @@ printf("测试printf 第二次");
 
 ![printf](./fishhook_image/fishhook_1.png)
 
-这是官方给的查找流程图。我们来一步步的探究一下
+这是官方给的查找流程图。根据在 __ DATA， __la_symbol_ptr 中的偏移，找到在Indirect Symbol Table中的位置，Indirect Symbol Table中的偏移值是在Symbol Table中的偏移，然后取出在Symbol Table中的偏移值，这个偏移值是在String Table中的偏移，在String Table中找到对应的符号。如果匹配证明查找正确。
+
+ 整个流程大致是这个样子，下面我们以懒加载符号NSLog为例，来探究一下具体的查找流程
+
+1. 首先来看`Load Commands` -> `LC_SEGMENT_64(__DATA)` -> `Section64 Header(__la_symbol_ptr)`  
+
+   - `Address` 的值指的是懒加载符号对应实现的虚拟内存地址，通过100002018找到了`Section64(__DATA,__la_symbol_ptr)` ，这一段代表的就是符号的具体实现，这里的顺序跟在符号表内的顺序是一致的
+
+   - `Indirect Sym Index` 的值18代表的是在`Dynamic Symbol Table`中的索引，从符号表中偏移18，就可以找到NSLog，按照顺序就可以找到其他对应的符号
+   - `Symbol Table`、`String Table` 和 `Dynamic Symbol Table`  的地址可以通过`Load Commands` -> `LC_SYMTAB` / `LC_DYSYMTAB` 找到对应的起始地址
+
+![printf](./fishhook_image/fishhook_17.png)
+
+![printf](./fishhook_image/fishhook_18.png)
+
+![printf](./fishhook_image/fishhook_19.png)
 
 
 
+2. 根据索引18在`Dynamic Symbol Table` 中找到了_NSLog， 第二列的值00000052就是在`Symbol Table`中的索引，这个52是十六进制，我们转成十进制就是82
 
+![printf](./fishhook_image/fishhook_20.png)
+
+
+
+3. 在`Symbol Table`中找到82的位置，我们看到也是__NSLog，这说明目前我们的查找是没问题的。拿到第二列的值55，这个值就是在`String Table`中的偏移
+
+![printf](./fishhook_image/fishhook_21.png)
+
+
+
+4. 找到`String Table`的起始地址38B4，加上我们刚刚得到的偏移55，通过计算器相加=0x3909，然后找到具体的位置，可以看到就是`_NSLog`，前后的.是分隔符
+
+![printf](./fishhook_image/fishhook_23.png)
 
 
 
