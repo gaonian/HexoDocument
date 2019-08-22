@@ -202,3 +202,5 @@ printf("测试printf 第二次");
 
 # 源码解析
 
+fishhook的代码很少，只有`fishhook.h`头文件和`fishhook.c`实现文件，具体的实现代码也就两百行左右，所以读起来还是很清晰的
+
