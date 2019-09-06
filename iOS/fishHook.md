@@ -79,14 +79,18 @@ Program ended with exit code: 0
 
 地址无关代码，也叫PIC（Position-indendent Code）。
 
+使用PIC的Mach-O文件，在引用符号（比如printf）的时候，并不是直接去找到符号的地址（编译期并不知道运行时printf的函数地址），而是通过在__DATA Segment上创建一个指针，等到启动的时候，dyld动态的去做绑定（bind），这样__DATA Segment上的指针就指向了printf的实现。
+
 
 
 ## 懒加载符号和非懒加载符号
 
-苹果为了加快系统的启动速度，将符号分成了懒加载符号和非懒加载符号。将一些符号的绑定重定位等放到第一次加载的时候。
+操作系统为了加快启动速度，将符号分成了懒加载符号和非懒加载符号。将一些符号的绑定重定位等放到第一次加载的时候。
 
-- 非懒加载符号在动态库链接的时候就会绑定真是的值
+- 非懒加载符号在动态库链接的时候就会绑定真实的值
 - 懒加载符号会在程序中第一次用到的时候再进行绑定
+
+fishhook就是利用懒加载符号在第一次使用时进行绑定这个机制来进行指针替换，达到hook的效果。也是正因为这样，所有fishhook无法hook程序内自定义的c函数，因为自己的c函数在启动的时候已绑定完地址。
 
 下面就以printf为例，printf就是一个懒加载符号，只有在用到的时候才会绑定。我们分别来看一下第一次调用和第二次调用有什么不一样。
 
@@ -202,5 +206,213 @@ printf("测试printf 第二次");
 
 # 源码解析
 
-fishhook的代码很少，只有`fishhook.h`头文件和`fishhook.c`实现文件，具体的实现代码也就两百行左右，所以读起来还是很清晰的
+```c
+/*
+ * A structure representing a particular intended rebinding from a symbol
+ * name to its replacement
+ */
+struct rebinding {
+  const char *name;
+  void *replacement;
+  void **replaced;
+};
+
+/*
+ * For each rebinding in rebindings, rebinds references to external, indirect
+ * symbols with the specified name to instead point at replacement for each
+ * image in the calling process as well as for all future images that are loaded
+ * by the process. If rebind_functions is called more than once, the symbols to
+ * rebind are added to the existing list of rebindings, and if a given symbol
+ * is rebound more than once, the later rebinding will take precedence.
+ */
+FISHHOOK_VISIBILITY
+int rebind_symbols(struct rebinding rebindings[], size_t rebindings_nel);
+```
+
+fishhook主要函数就是rebind_symbols()，传入两个参数，第一个参数为rebinding结构体数组，第二个参数为结构体数组个数。
+
+看一下rebinding结构体
+
+- `char *name` 需要hook的函数名称。若需hook printf()函数，则为"printf"
+
+- `void *replacement` 新实现的函数地址
+
+- `void **replaced` *replaced是一个函数指针 **replaced是指向函数指针的指针，为了取出函数的地址，可以在被调函数内修改
+
+  
+
+接下来看一下rebind_symbols()函数的实现
+
+```C
+int rebind_symbols(struct rebinding rebindings[], size_t rebindings_nel) {
+  int retval = prepend_rebindings(&_rebindings_head, rebindings, rebindings_nel);
+  if (retval < 0) {
+    return retval;
+  }
+  // If this was the first call, register callback for image additions (which is also invoked for
+  // existing images, otherwise, just run on existing images
+  if (!_rebindings_head->next) {
+    _dyld_register_func_for_add_image(_rebind_symbols_for_image);
+  } else {
+    uint32_t c = _dyld_image_count();
+    for (uint32_t i = 0; i < c; i++) {
+      _rebind_symbols_for_image(_dyld_get_image_header(i), _dyld_get_image_vmaddr_slide(i));
+    }
+  }
+  return retval;
+}
+```
+
+首先调用 `prepend_rebindings()`  函数做一些初始化准备工作，传入三个参数，第一个参数`_rebindings_head`是一个指向`rebindings_entry`结构体的指针，从结构体定义可以看出这是一个单向链表的结构。`rebindings`是一个指向`rebinding`结构体的指针，`next`指向下一个节点。会把外部传入的`rebindings`全部插入到此链表中串起来。
+
+```c
+struct rebindings_entry {
+  struct rebinding *rebindings;
+  size_t rebindings_nel;
+  struct rebindings_entry *next;
+};
+
+static struct rebindings_entry *_rebindings_head;
+
+
+
+static int prepend_rebindings(struct rebindings_entry **rebindings_head,
+                              struct rebinding rebindings[],
+                              size_t nel) {
+  // 开辟 rebindings_entry 堆空间
+  struct rebindings_entry *new_entry = (struct rebindings_entry *) malloc(sizeof(struct rebindings_entry));
+  if (!new_entry) {
+    return -1;
+  }
+  // 开辟 new_entry->rebindings 堆空间
+  // 如果失败，释放空间 返回
+  new_entry->rebindings = (struct rebinding *) malloc(sizeof(struct rebinding) * nel);
+  if (!new_entry->rebindings) {
+    free(new_entry);
+    return -1;
+  }
+  // 拷贝外部rebinding结构体内容 -> 内部结构体 rebindings_entry->rebindings
+  // 添加 new_entry 到 _rebindings_head 这个链表结构的头部 成为新的头节点
+  memcpy(new_entry->rebindings, rebindings, sizeof(struct rebinding) * nel);
+  new_entry->rebindings_nel = nel;
+  new_entry->next = *rebindings_head;
+  *rebindings_head = new_entry;
+  return 0;
+}
+```
+
+准备工作没问题之后，接下来执行一个判断，`!_rebindings_head->next` 若链表内无内容，说明第一次执行，则调用`_dyld_register_func_for_add_image`方法，此方法会注册一个通知，当动态库加载的时候会主动调用通知内的`_rebind_symbols_for_image`方法。
+
+若next有值，则进行加载动态库的遍历，也调用`_rebind_symbols_for_image` 方法。
+
+```c
+static void _rebind_symbols_for_image(const struct mach_header *header,
+                                      intptr_t slide) {
+    rebind_symbols_for_image(_rebindings_head, header, slide);
+}
+```
+
+`_rebind_symbols_for_image`实际调用的是`rebind_symbols_for_image` ，`rebind_symbols_for_image` 是核心方法，主要是解析mach-o，查找`S_LAZY_SYMBOL_POINTERS` `S_NON_LAZY_SYMBOL_POINTERS` 位置，找到之后调用`perform_rebinding_with_section` 方法真正的实现函数替换。
+
+```c
+static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
+                                     const struct mach_header *header,
+                                     intptr_t slide) {
+  Dl_info info;
+  if (dladdr(header, &info) == 0) {
+    return;
+  }
+
+  segment_command_t *cur_seg_cmd;
+  segment_command_t *linkedit_segment = NULL;
+  struct symtab_command* symtab_cmd = NULL;
+  struct dysymtab_command* dysymtab_cmd = NULL;
+
+  uintptr_t cur = (uintptr_t)header + sizeof(mach_header_t);
+  for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
+    cur_seg_cmd = (segment_command_t *)cur;
+    if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
+      if (strcmp(cur_seg_cmd->segname, SEG_LINKEDIT) == 0) {
+        linkedit_segment = cur_seg_cmd;
+      }
+    } else if (cur_seg_cmd->cmd == LC_SYMTAB) {
+      symtab_cmd = (struct symtab_command*)cur_seg_cmd;
+    } else if (cur_seg_cmd->cmd == LC_DYSYMTAB) {
+      dysymtab_cmd = (struct dysymtab_command*)cur_seg_cmd;
+    }
+  }
+
+  if (!symtab_cmd || !dysymtab_cmd || !linkedit_segment ||
+      !dysymtab_cmd->nindirectsyms) {
+    return;
+  }
+
+  // Find base symbol/string table addresses
+  uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment->vmaddr - linkedit_segment->fileoff;
+  nlist_t *symtab = (nlist_t *)(linkedit_base + symtab_cmd->symoff);
+  char *strtab = (char *)(linkedit_base + symtab_cmd->stroff);
+
+  // Get indirect symbol table (array of uint32_t indices into symbol table)
+  uint32_t *indirect_symtab = (uint32_t *)(linkedit_base + dysymtab_cmd->indirectsymoff);
+
+  cur = (uintptr_t)header + sizeof(mach_header_t);
+  for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
+    cur_seg_cmd = (segment_command_t *)cur;
+    if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
+      if (strcmp(cur_seg_cmd->segname, SEG_DATA) != 0 &&
+          strcmp(cur_seg_cmd->segname, SEG_DATA_CONST) != 0) {
+        continue;
+      }
+      for (uint j = 0; j < cur_seg_cmd->nsects; j++) {
+        section_t *sect =
+          (section_t *)(cur + sizeof(segment_command_t)) + j;
+        if ((sect->flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
+          perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);
+        }
+        if ((sect->flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
+          perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);
+        }
+      }
+    }
+  }
+}
+```
+
+```c
+static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
+                                           section_t *section,
+                                           intptr_t slide,
+                                           nlist_t *symtab,
+                                           char *strtab,
+                                           uint32_t *indirect_symtab) {
+  uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1;
+  void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr);
+  for (uint i = 0; i < section->size / sizeof(void *); i++) {
+    uint32_t symtab_index = indirect_symbol_indices[i];
+    if (symtab_index == INDIRECT_SYMBOL_ABS || symtab_index == INDIRECT_SYMBOL_LOCAL ||
+        symtab_index == (INDIRECT_SYMBOL_LOCAL   | INDIRECT_SYMBOL_ABS)) {
+      continue;
+    }
+    uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;
+    char *symbol_name = strtab + strtab_offset;
+    bool symbol_name_longer_than_1 = symbol_name[0] && symbol_name[1];
+    struct rebindings_entry *cur = rebindings;
+    while (cur) {
+      for (uint j = 0; j < cur->rebindings_nel; j++) {
+        if (symbol_name_longer_than_1 &&
+            strcmp(&symbol_name[1], cur->rebindings[j].name) == 0) {
+          if (cur->rebindings[j].replaced != NULL &&
+              indirect_symbol_bindings[i] != cur->rebindings[j].replacement) {
+            *(cur->rebindings[j].replaced) = indirect_symbol_bindings[i];
+          }
+          indirect_symbol_bindings[i] = cur->rebindings[j].replacement;
+          goto symbol_loop;
+        }
+      }
+      cur = cur->next;
+    }
+  symbol_loop:;
+  }
+}
+```
 
