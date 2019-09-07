@@ -49,7 +49,7 @@ int main(int argc, const char * argv[]) {
 Program ended with exit code: 0
 ```
 
-可以看到已经实现了hook printf的目的。从代码字面意识上来看，调用printf的时候，应该是调用了我们的newPrintf函数，在我们的函数内部做一些事情之后再调用会到原本的函数实现，这和oc method swizzing的原理是差不多的。下面就来深入的了解一下
+可以看到已经实现了hook printf的目的。从代码来看，调用printf的时候，应该是调用了我们的newPrintf函数，在我们的函数内部做一些事情之后再调用会到原本的函数实现，本质来说就是函数指针的交换。
 
 
 
@@ -77,9 +77,7 @@ Program ended with exit code: 0
 
 ## 地址无关代码 
 
-地址无关代码，也叫PIC（Position-indendent Code）。
-
-使用PIC的Mach-O文件，在引用符号（比如printf）的时候，并不是直接去找到符号的地址（编译期并不知道运行时printf的函数地址），而是通过在__DATA Segment上创建一个指针，等到启动的时候，dyld动态的去做绑定（bind），这样__DATA Segment上的指针就指向了printf的实现。
+地址无关代码，也叫PIC（Position-indendent Code），使用PIC的Mach-O文件，在引用符号（比如printf）的时候，并不是直接去找到符号的地址（编译期并不知道运行时printf的函数地址），而是通过在`__DATA` Segment上创建一个指针，等到启动的时候，dyld动态的去做绑定（bind），这样__DATA Segment上的指针就指向了printf的实现。fishhook利用PIC技术，针对`DATA` 段上的符号绑定的指针进行替换
 
 
 
@@ -90,7 +88,7 @@ Program ended with exit code: 0
 - 非懒加载符号在动态库链接的时候就会绑定真实的值
 - 懒加载符号会在程序中第一次用到的时候再进行绑定
 
-fishhook就是利用懒加载符号在第一次使用时进行绑定这个机制来进行指针替换，达到hook的效果。也是正因为这样，所有fishhook无法hook程序内自定义的c函数，因为自己的c函数在启动的时候已绑定完地址。
+fishhook在懒加载符号第一次使用时进行绑定这个机制来进行指针替换，达到hook的效果。也是正因为这样，所有fishhook无法hook程序内自定义的c函数，因为自己的c函数在启动的时候已绑定完地址。
 
 下面就以printf为例，printf就是一个懒加载符号，只有在用到的时候才会绑定。我们分别来看一下第一次调用和第二次调用有什么不一样。
 
@@ -204,7 +202,7 @@ printf("测试printf 第二次");
 
 
 
-# 源码解析
+# 源码
 
 ```c
 /*
@@ -263,7 +261,7 @@ int rebind_symbols(struct rebinding rebindings[], size_t rebindings_nel) {
 }
 ```
 
-首先调用 `prepend_rebindings()`  函数做一些初始化准备工作，传入三个参数，第一个参数`_rebindings_head`是一个指向`rebindings_entry`结构体的指针，从结构体定义可以看出这是一个单向链表的结构。`rebindings`是一个指向`rebinding`结构体的指针，`next`指向下一个节点。会把外部传入的`rebindings`全部插入到此链表中串起来。
+首先调用 `prepend_rebindings()`  函数做一些初始化准备工作，传入三个参数，第一个参数`_rebindings_head`是一个指向`rebindings_entry`结构体的指针，从结构体定义可以看出这是一个单向链表的结构。`rebindings`是一个指向`rebinding`结构体的指针，`next`指向下一个节点。会把外部传入的`rebindings`全部插入到此链表中串起来。第二三个参数则是rebindings结构体数组，`prepend_rebindings`函数内部会把第二三个参数插入到第一个参数内。
 
 ```c
 struct rebindings_entry {
@@ -301,7 +299,7 @@ static int prepend_rebindings(struct rebindings_entry **rebindings_head,
 }
 ```
 
-准备工作没问题之后，接下来执行一个判断，`!_rebindings_head->next` 若链表内无内容，说明第一次执行，则调用`_dyld_register_func_for_add_image`方法，此方法会注册一个通知，当动态库加载的时候会主动调用通知内的`_rebind_symbols_for_image`方法。
+准备工作没问题之后，接下来执行一个判断，`!_rebindings_head->next` 若链表内无内容，说明第一次执行，则调用`_dyld_register_func_for_add_image`方法，当调用`_dyld_register_func_for_add_image`注册监听方法后，当前已经装载的image等会立刻触发回调，之后的image会在装载的时候触发回调，调用通知内的`_rebind_symbols_for_image`方法
 
 若next有值，则进行加载动态库的遍历，也调用`_rebind_symbols_for_image` 方法。
 
@@ -397,14 +395,18 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
     char *symbol_name = strtab + strtab_offset;
     bool symbol_name_longer_than_1 = symbol_name[0] && symbol_name[1];
     struct rebindings_entry *cur = rebindings;
+    // 遍历所有结构体内需要替换的函数，进行替换
     while (cur) {
       for (uint j = 0; j < cur->rebindings_nel; j++) {
+        // 比较符号名称和外部传入需hook的符号名，如果一致则进行下一步替换
         if (symbol_name_longer_than_1 &&
             strcmp(&symbol_name[1], cur->rebindings[j].name) == 0) {
           if (cur->rebindings[j].replaced != NULL &&
               indirect_symbol_bindings[i] != cur->rebindings[j].replacement) {
+            // 取出函数指针的指向的地址，存入函数原有的方法实现
             *(cur->rebindings[j].replaced) = indirect_symbol_bindings[i];
           }
+          // 把原有的函数实现替换为自定义的replacement
           indirect_symbol_bindings[i] = cur->rebindings[j].replacement;
           goto symbol_loop;
         }
@@ -415,4 +417,15 @@ static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
   }
 }
 ```
+
+
+
+# 参考资料
+
+- https://github.com/facebook/fishhook
+- [fishhook的实现原理浅析](https://juejin.im/post/5c7b43976fb9a04a05406312)
+
+- [fishhook使用场景&源码分析](https://juejin.im/post/5c810294f265da2db91297f1)
+
+- [Fishhook替换C函数的原理](https://blog.csdn.net/Hello_Hwc/article/details/78444203)
 
