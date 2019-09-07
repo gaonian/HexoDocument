@@ -376,6 +376,8 @@ static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
 }
 ```
 
+在`perform_rebinding_with_section`的内部真正实现替换，会拿结构体内需hook的符号名进行对比，如果符号名称一致，而且没有被替换过，则会拿我们自己的函数指针保存原来的实现，然后把指针指向我们自定义的实现。这样就实现了替换，既完成了函数替换，也保存了原有实现，待在自定义函数内完成了工作后，可以调用原来的实现恢复正常工作。
+
 ```c
 static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
                                            section_t *section,
