@@ -4,10 +4,10 @@ title : Mac OS X ABI Mach-O File Format Reference
 
 # Overview
 
-This document describes the structure of the Mach-O (Mach object) file format, which is the standard
+<font color=red>This document describes the structure of the Mach-O (Mach object) file format, which is the standard
 used to store programs and libraries on disk in the Mac OS X application binary interface (ABI). To
 understand how the Xcode tools work with Mach-O files, and to perform low-level debugging tasks,
-you need to understand this information.
+you need to understand this information.</font>
 
 本文档描述了Mach- o (Mach object)文件格式的结构，这是Mac OS X应用程序二进制接口(ABI)中用于在磁盘上存储程序和库的标准格式。要理解Xcode工具如何处理Mach-O文件，并执行 low-level 调试任务，您需要理解这些信息。
 
