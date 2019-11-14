@@ -49,9 +49,25 @@ title : html
 
 ### button
 
+```html
+<button type="button">fdfd</button>
+```
+
 ### label
 
 ### strong
+
+### textarea
+
+```html
+<textarea name="name" id="id">fajsdfjaljdsfl</textarea>
+
+textarea {
+	resize: none;
+}
+```
+
+
 
 
 
@@ -292,9 +308,28 @@ title : html
 
   多行文本框
 
+  ```html
+  <textarea name="name" id="id">多行文本框</textarea>
+  
+  css
+  textarea {
+  	resize: none;
+  	width: 100px;
+  	height: 50px
+  }
+  ```
+
 - `select、option`
 
   下拉选择框
+
+  ``` html
+  <select name="edu" title="学历">
+    <option value="1">小学</option>
+    <option value="2">初中</option>
+    <option value="3" selected>高中</option>
+  </select>
+  ```
 
 - `button`
 
@@ -307,6 +342,14 @@ title : html
 - `fieldset`
 
   表单元素组
+
+  ```html
+  <fieldset>
+    <legend>必填信息</legend>
+    <div></div>
+    <div></div>
+  </fieldset>
+  ```
 
 - `legend`
 
