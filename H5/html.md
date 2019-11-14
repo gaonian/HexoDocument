@@ -2,6 +2,8 @@
 title : html
 ---
 
+## 标签
+
 ### html
 
 ### head
@@ -68,6 +70,37 @@ textarea {
 ```
 
 
+
+## 元素类型
+
+根据元素的 显示 类型，html元素可以主要分为2大类
+
+### 块级元素（block-level elements）
+
+- 独占父元素一行
+
+- div、p、pre、h1-h6、ul、ol、li、dl、dt、dd、table、form、article、aside、footer、header、hgroup、main、nav、section、blockquote、hr等
+
+  
+
+### 行内级元素（inline-level elements）
+
+- 多个行内级元素可以在父元素的同一行中展示
+- a、img、span、strong、code、iframe、label、input、button、canvas、embed、object、video、audio等
+
+
+
+根据元素的 内容 类型，html元素可以主要分为2大类
+
+### 替换元素（replaced elements）
+
+- 元素本身没有实际内容，浏览器根据元素的类型和属性，来决定元素的具体显示内容
+- img、input、iframe、video、embed、canvas、audio、object等
+
+### 非替换元素（non-replaced elements）
+
+- 和替换元素相反，元素本身是有实际内容的，浏览器会直接将其内容显示出来，而不需要根据元素类型和属性来判断到底显示什么内容
+- div、p、pre、h1-h6、ul、ol、li、dl、dt、dd、table、form、article、aside、footer、header、hgroup、p、main、nav、hr、a、strong、span、code、label等
 
 
 
@@ -388,14 +421,24 @@ textarea {
 - **type**:  input类型
 
   - text : 文本输入框（明文输入）
+
   - password ：文本输入框（密文输入）
+
   - radio：单选框
+
   - checkbox：复选框
+
   - button：按钮
+
   - reset：重置
+
   - submit：提交表单数据给服务器
+
   - file：文件上传
+
   - hidden：隐藏域
+
+    type="hidden"
 
 - **maxlength**：允许输入的最大字数
 
@@ -417,4 +460,8 @@ textarea {
 
   一旦使用了此属性，input元素即使不写在form元素内部，它的数据也能够提交给服务器
 
-  
+
+
+
+## fff
+
