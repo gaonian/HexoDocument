@@ -102,6 +102,8 @@ textarea {
 - 和替换元素相反，元素本身是有实际内容的，浏览器会直接将其内容显示出来，而不需要根据元素类型和属性来判断到底显示什么内容
 - div、p、pre、h1-h6、ul、ol、li、dl、dt、dd、table、form、article、aside、footer、header、hgroup、p、main、nav、hr、a、strong、span、code、label等
 
+![](./img/ elementtype.png)
+
 
 
 ## 列表

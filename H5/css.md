@@ -73,6 +73,61 @@ table {
 }
 ```
 
+### display
+
+```css
+span {
+  /* 让元素显示为块级元素 */
+  display: block;
+}
+
+div {
+  /* 让元素展示为行内元素 */
+  display: inline;
+}
+
+p {
+  /* 隐藏 */
+  display: none;
+}
+
+span {
+  /* 行内。随意设置宽高, 宽高包裹内容 */
+  /* 跟其他行内级元素展示在同一行，而且能随意更换宽高
+  让行内级非替换元素随意更换宽高（a、span）
+  让块级元素能够和其他元素一行显示（div、p）*/
+  display: inline-block;
+}
+```
+
+### visibility
+
+```css
+div {
+  /* 可见 隐藏 
+  	 和display：none的区别是 是否改变位置*/
+  visibility: visible;
+  visibility: hidden;	
+}
+```
+
+### overflow
+
+``` css
+div {
+  /* 默认 一直显示 */
+  overflow: visible;
+  /* 超出隐藏 */
+  overflow: hidden;
+  /* 一直添加一个滚动条 */
+  overflow: scroll;
+  /* 超出范围添加滚动条 */
+  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+```
+
 
 
 
