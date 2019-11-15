@@ -2,7 +2,7 @@
 
 **Before you read this article: Apple says that is will reduce the download size of all apps by 50% by "packaging" them differently. They are probably fixing the problems that this article provides workarounds for, making this article irrelevant. However, I will leave the article up for general interest.**
 
-在你读这篇文章之前，苹果说他们通过不同的‘packaging’可能使app下载的大小减少百分之50。他们可能正在修复本文提供的解决办法，使这篇文章无关紧要。不过，我将把这篇文章留作一般参考
+在你读这篇文章之前， 苹果公司说它将通过对所有应用程序进行不同的“打包”，将它们的下载量减少50%。他们可能正在修复本文提供的解决办法，使这篇文章无关紧要。不过，我将把这篇文章留作一般参考
 
 
 
