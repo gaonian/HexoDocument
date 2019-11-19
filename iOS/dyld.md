@@ -1218,7 +1218,7 @@ out-of-process是一个普通的后台守护程序，因为从各个APP进程抽
 
 [opensource]( https://opensource.apple.com/tarballs/dyld/)
 
-[dyld启动流程]([https://leylfl.github.io/2018/05/28/dyld%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/](https://leylfl.github.io/2018/05/28/dyld启动流程/))
+[dyld启动流程](https://leylfl.github.io/2018/05/28/dyld启动流程/)
 
 [WWDC2019之启动时间与Dyld3](http://www.zoomfeng.com/blog/launch-optimize-from-wwdc2019.html)
 
