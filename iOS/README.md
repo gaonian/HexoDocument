@@ -5,6 +5,6 @@
 - [**macho format**](https://github.com/gaonian/HexoDocument/blob/master/iOS/machoFormat.md)
 - [**reduce app size**](https://github.com/gaonian/HexoDocument/blob/master/iOS/reduceApp.md)
 
-- [**SQLite常用API(C/C++)**](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite常用API(C/C++))
+- [**SQLite常用API(C)**](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite常用API(C))
 
-- [**SQLite接口介绍(C/C++)**](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite接口介绍(C/C++))
+- [**SQLite接口介绍(C)**](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite接口介绍(C))
