@@ -553,6 +553,38 @@ busy回调不应执行任何修改调用busy处理程序的数据库连接的操
 
 
 
+### sqlite3_wal_checkpoint_v2
+
+```sql
+int sqlite3_wal_checkpoint_v2(
+  sqlite3 *db,                    /* Database handle */
+  const char *zDb,                /* Name of attached database (or NULL) */
+  int eMode,                      /* SQLITE_CHECKPOINT_* value */
+  int *pnLog,                     /* OUT: Size of WAL log in frames */
+  int *pnCkpt                     /* OUT: Total number of frames checkpointed */
+);
+```
+
+`sqlite3_wal_checkpoint_v2（D，X，M，L，C）` 接口在模式M下对数据库连接D的数据库X运行检查点操作。状态信息被写回由L和C指向的整数中。M参数必须是有效的检查点模式：
+
+- SQLITE_CHECKPOINT_PASSIVE
+
+  在不等待任何数据库读写器完成的情况下检查尽可能多的帧，如果日志中的所有帧都被选中，则同步数据库文件。在SQLITE_CHECKPOINT_被动模式下从不调用繁忙处理程序回调。另一方面，如果存在并发读写器，被动模式可能会使检查点未完成。
+
+- SQLITE_CHECKPOINT_FULL
+
+  此模式将阻塞（它调用busy handler回调），直到没有数据库写入程序并且所有读卡器都在读取最新的数据库快照。然后检查日志文件中的所有帧并同步数据库文件。此模式在挂起时阻止新的数据库写入程序，但允许新的数据库读取程序继续不受阻碍。
+
+- SQLITE_CHECKPOINT_RESTART
+
+  此模式的工作方式与SQLITE_CHECKPOINT_FULL相同，另外，在检查日志文件之后，它会阻塞（调用busy handler回调），直到所有读卡器都只从数据库文件读取为止。这将确保下一个写入程序从头开始重新启动日志文件。与SQLITE_CHECKPOINT_FULL类似，此模式在挂起时阻止新的数据库编写器尝试，但不会妨碍读卡器。
+
+- SQLITE_CHECKPOINT_TRUNCATE
+
+  此模式的工作方式与SQLITE_CHECKPOINT_RESTART相同，它还将在成功返回之前将日志文件截断为零字节。
+
+
+
 ## 参考资料
 
 [sqlite c/c++ api 官方文档](https://sqlite.org/c3ref/intro.html)
