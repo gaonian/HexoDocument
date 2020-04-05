@@ -1487,5 +1487,5 @@ typedef NS_ENUM(NSInteger, FMDBTransaction) {
 
 [sqlite3](https://sqlite.org/c3ref/intro.html)
 
-[sqlite常用api]([https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite%E5%B8%B8%E7%94%A8API(C).md](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite常用API(C).md)
+[sqlite常用api](https://github.com/gaonian/HexoDocument/blob/master/iOS/SQLite/SQLite%E5%B8%B8%E7%94%A8API(C).md)
 
