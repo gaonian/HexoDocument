@@ -1,5 +1,6 @@
 ---
 title : Mac OS X ABI Mach-O File Format Reference
+categories: iOS
 ---
 
 # Overview
@@ -66,7 +67,7 @@ A Mach-O file contains three major regions (as shown in Figure 1):
 
   **Figure 1** Mach-O file format basic structure 
 
-  ![mach-o](./macho_image/machoformat2.png)
+  ![mach-o](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/macho_image/machoformat2.png)
 
 Various tables within a Mach-O file refer to sections by number. Section numbering begins at 1 (not
 0) and continues across segment boundaries. Thus, the first segment in a file may contain sections 1

@@ -1,14 +1,21 @@
+---
+title: Dyld
+categories: iOS
+---
+
+
+
 ## 简介
 
 内核加载mach-o文件，fork一条新的线程出来，分配内存，解析主程序的mach-o信息，读取主程序mach-o头信息，遍历主程序每条load command信息，装载进内存，解析dyld，讲entry_point入口地址改为dyld的入口地址。进入entry_point对应的入口，启动dyld，设置进程的主线程
 
-![](./dyld_img/fork@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/fork@2x.png)
 
 
 
 **dyld**（the dynamic link editor）动态链接器。系统内核加载mach-o做完初始化操作之后，交由dyld处理
 
-![](./dyld_img/dyld@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld@2x.png)
 
 dyld主要做动态库加载，链接，初始化等操作，一直处理到调用程序的main()函数为止。
 
@@ -18,7 +25,7 @@ dyld主要做动态库加载，链接，初始化等操作，一直处理到调�
 
 首先在+load函数打断点，看一下之前的调用堆栈
 
-![](./dyld_img/start@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/start@2x.png)
 
 从图中可以看到首先调用了dyld中的_dyld_start方法，再接着调用dyldbootstrap::start()方法。
 
@@ -28,13 +35,13 @@ dyld主要做动态库加载，链接，初始化等操作，一直处理到调�
 
 [dyld]( https://opensource.apple.com/tarballs/dyld/)是开源的，这里讨论的是dyld2，下载源码，搜索_dyld_start在何处使用，找到是在`dyldStartup.s`汇编文件内，从汇编内注释看到调用了dyldbootstrap::start
 
-![](./dyld_img/dyldstart@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyldstart@2x.png)
 
 
 
 ### bootstrap::start()
 
-![](./dyld_img/func_start.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/func_start.png)
 
 start()内做了四步操作
 
@@ -932,7 +939,7 @@ void _dyld_objc_notify_register(_dyld_objc_notify_mapped    mapped,
 
 此时在代码层面已经无法继续跟进，我们需要在在项目内打符号断点查看_dyld_objc_notify_register在何处调用
 
-![](./dyld_img/objc_notify.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/objc_notify.png)
 
 从断点可以看出是`_objc_init`注册了这个通知，接下来我们打开[runtime的开源库](https://opensource.apple.com/tarballs/objc4/)，找到_objc_init方法
 
@@ -1143,7 +1150,7 @@ void* ImageLoaderMachO::getEntryFromLC_UNIXTHREAD() const
 
 WWDC2017推出了dyld3，应用在系统的app中。在iOS13开放给三方的app，极大优化了启动速度。
 
-![](./dyld_img/dyld3@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld3@2x.png)
 
 dyld2是纯碎的in-process，也就是在程序进程内执行的，也就意味着只有当应用程序被启动的时候，dyld2才能开始执行任务。
 
@@ -1165,7 +1172,7 @@ Dyld3中，将这些部分移到上层（图中红色的部分），然后向磁
 
 
 
-![](./dyld_img/dyld3_1@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld3_1@2x.png)
 
 dyld3包含了3个组件
 
@@ -1177,7 +1184,7 @@ dyld3包含了3个组件
 
 ### out-of-process mach-o parser
 
-![](./dyld_img/dyld3_2@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld3_2@2x.png)
 
 在dyld 2的加载流程中，Parse mach-o headers和Find Dependencies存在安全风险（可以通过修改mach-o header及添加非法@rpath进行攻击），而Perform symbol lookups会耗费较多的CPU时间，因为一个库文件不变时，符号将始终位于库中相同的偏移位置，这两部分在dyld 3中将采用提前写入把结果数据缓存成文件的方式构成一个”lauch closure“（可以理解为缓存文件）。
 
@@ -1194,7 +1201,7 @@ out-of-process是一个普通的后台守护程序，因为从各个APP进程抽
 
 ### in-process engine
 
-![](./dyld_img/dyld3_3@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld3_3@2x.png)
 
 进程内验证launch closure是否正确，映射所有的动态库，执行初始化并跳转到main()函数。
 
@@ -1204,7 +1211,7 @@ out-of-process是一个普通的后台守护程序，因为从各个APP进程抽
 
 ### launch closure cache
 
-![](./dyld_img/dyld3_4@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/dyld_img/dyld3_4@2x.png)
 
 - 系统的app的`launch closures`直接构建到共享的缓存内，可以运行和分析系统中每一个mach-o文件
 - 对于第三方的app，将在程序安装期间构建`launch closures`，在系统更新期间重新构建。因为那时候的系统库已经发生更改。这样就能保证`lauch closure`总是在APP打开之前准备好。启动闭包会被写到到一个文件里，下次启动则直接读取和验证这个文件。

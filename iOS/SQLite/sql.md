@@ -1,3 +1,10 @@
+---
+title: SQL必知必会
+categories: SQL
+---
+
+
+
 ## 1. 数据库基础
 
 - 数据库管理软件 （DBMS）
@@ -116,7 +123,7 @@
 
   
 
-  ![sql1](./sql_image/sql1.png)
+  ![sql1](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sql_image/sql1.png)
 
 
 
@@ -262,11 +269,11 @@ sql的通配符很有用。但这种功能是有代价的，通配符搜索一�
 
 ### 文本处理函数
 
-![](./sql_image/sql2.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sql_image/sql2.png)
 
 ### 数值处理函数
 
-![](./sql_image/sql3.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sql_image/sql3.png)
 
 ### 日期处理函数
 
@@ -368,7 +375,7 @@ sql的通配符很有用。但这种功能是有代价的，通配符搜索一�
 
   group by子句必须出现在where子句之后，order by子句之前
 
-  ![](./sql_image/sql4.png)
+  ![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sql_image/sql4.png)
 
 
 
@@ -384,7 +391,7 @@ sql的通配符很有用。但这种功能是有代价的，通配符搜索一�
 
   having和where非常相似，唯一区别是having可以用来过滤分组，而where只能过滤行。
 
-![](./sql_image/sql5.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sql_image/sql5.png)
 
 
 

@@ -1,3 +1,10 @@
+---
+title: SQLite常用API（C）
+categories: SQL
+---
+
+
+
 ## 简介
 
 SQLite接口元素可以分为三类：
@@ -24,7 +31,7 @@ typedef struct sqlite3 sqlite3;
 
 还有许多其他接口（如 `sqlite3_prepare_v2()` 、`sqlite3_create_function()` 和 `sqlite3_busy_timeout()` ）是sqlite3对象上的方法。
 
-![sqlite1](./sqlite_image/sqlite1.png)
+![sqlite1](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sqlite_image/sqlite1.png)
 
 
 
@@ -61,7 +68,7 @@ prepared语句对象的生命周期通常如下：
 
 - sqlite3_finalize()
 
-![sqlite2](./sqlite_image/sqlite2.png)
+![sqlite2](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sqlite_image/sqlite2.png)
 
 
 

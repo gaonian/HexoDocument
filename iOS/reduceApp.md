@@ -1,3 +1,10 @@
+---
+title: One Quick Way to Drastically Reduce your iOS App's Download Size
+categories: iOS
+---
+
+
+
 # One Quick Way to Drastically Reduce your iOS App's Download Size
 
 **Before you read this article: Apple says that is will reduce the download size of all apps by 50% by "packaging" them differently. They are probably fixing the problems that this article provides workarounds for, making this article irrelevant. However, I will leave the article up for general interest.**
@@ -16,7 +23,7 @@ App download size is important. The larger your app's download size, the fewer u
 
 Let's look at the Telegram app(thinned for the iPhoneX) and see how much each file type contributes:
 
-![](./reduce_img/reduce.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/reduce_img/reduce.png)
 
 As you can see, it's dominated by binaries (the main binary, frameworks, and extension binaries). Binaries usually make up 60%+ of an app's download size.
 
@@ -94,7 +101,7 @@ Get the path to your executable from the build log
 
 从构建日志获取可执行文件的路径
 
-![](./reduce_img/segment.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/reduce_img/segment.png)
 
 We can see that the __TEXT segment has a number of sections (in the lines below Segment _TEXT: ... and above Segment _DATA: ...)
 
@@ -114,9 +121,9 @@ To add these flags. go to the Xcode build settings for your target and add them 
 
 添加这些标志。进入Xcode建立设置为您的目标，并添加他们在 “Other Linker Flags”:
 
-![](./reduce_img/otherlink.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/reduce_img/otherlink.png)
 
-![](./reduce_img/otherlink1.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/reduce_img/otherlink1.png)
 
 **4. Verify**
 
@@ -126,7 +133,7 @@ You should see something like:
 现在运行另一个版本并再次运行xcrun size…命令，看看它是否工作。
 你应该看到这样的东西:
 
-![](./reduce_img/segment_new@2x.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/reduce_img/segment_new@2x.png)
 
 
 

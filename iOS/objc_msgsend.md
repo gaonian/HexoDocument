@@ -1,3 +1,10 @@
+---
+title: objc_msgsend
+categories: iOS
+---
+
+
+
 ##  Overview
 
 Every Objective-C object has a class, and every Objective-C class has a list of methods. Each method has a selector, a function pointer to the implementation, and some metadata. The job of `objc_msgSend` is to take the object and selector that's passed in, look up the corresponding method's function pointer, and then jump to that function pointer.
@@ -490,4 +497,4 @@ That's the end of the `nil` handler, and of `objc_msgSend` as a whole.
 
 以上就是`nil`的处理方法，以及`objc_msgSend`的全部。
 
-![objc_msgSend](./msgsend_img/objc_msgsend.png)
+![objc_msgSend](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/msgsend_img/objc_msgsend.png)

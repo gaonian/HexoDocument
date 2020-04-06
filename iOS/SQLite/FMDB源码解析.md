@@ -1,8 +1,15 @@
+---
+title: FMDB源码解析
+categories: SQL
+---
+
+
+
 ## 概要
 
 FMDB是iOS上针对sqlite3封装的数据库框架，简单使用，支持多线程安全操作，以OC的方式封装了sqlite3的C语言api。
 
-![](./fmdb_image/FMDB.png)
+![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/fmdb_image/FMDB.png)
 
 
 
