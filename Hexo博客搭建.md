@@ -1,6 +1,6 @@
 ---
 title: Hexo博客搭建
-date: 2000/7/13 20:46:25
+date: 2016/7/13 20:46:25
 categories: Hexo博客
 ---
 
@@ -316,7 +316,7 @@ deploy:
 | :-------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
 | `repo`    | 库（Repository）地址                                         |                                                              |
 | `branch`  | 分支名称                                                     | `gh-pages` (GitHub) `coding-pages` (Coding.net) `master` (others) |
-| `message` | 自定义提交信息                                               | `Site updated: {{ now('YYYY-MM-DD HH:mm:ss') }}`)            |
+| `message` | 自定义提交信息                                               |                                                              |
 | `token`   | Optional token value to authenticate with the repo. Prefix with `$` to read token from environment variable |                                                              |
 
 1. 生成站点文件并推送至远程库。执行`hexo clean && hexo deploy`
@@ -438,21 +438,29 @@ deploy:
 
   2. 下载nginx的压缩包，上传到服务器
 
-  3. ```
+  3. 解压
+
+     ```
      tar -zxvf nginx-1.11.5.tar.gz
      ```
 
-  4. ```
-     cd nnginx-1.11.5
+  4. 配置nginx
+
+     ```
+     cd nginx-1.11.5
      ./configure --prefix=/usr/local/nginx
      
      --prefix=/usr/local/nginx  是nginx编译安装的目录（推荐），安装完后会在此目录下生成相关文件
      ```
 
-  5. ```
+  5. 编译安装
+
+     ```
      make
      make install
      ```
+
+  
 
   通过nginx源码安装操作命令
 
