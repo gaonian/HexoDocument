@@ -6,7 +6,7 @@
 - [**iOS Jailbreak**](https://github.com/gaonian/HexoDocument/blob/master/iOS/iOSJailBreak.md)
 - [**Macho Format**](https://github.com/gaonian/HexoDocument/blob/master/iOS/machoFormat.md)
 - [**Reduce App Size**](https://github.com/gaonian/HexoDocument/blob/master/iOS/reduceApp.md)
-- [**block解析**](https://github.com/gaonian/HexoDocument/blob/master/iOS/block)
+- [**block解析**](https://github.com/gaonian/HexoDocument/blob/master/iOS/block.md)
 
 
 
