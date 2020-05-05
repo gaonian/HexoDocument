@@ -284,13 +284,371 @@ dispatch_async(queue, ^{
 
 
 
+#### Block存储位置
+
+block具体有三种类型
+
+- `__NSGlobalBlock__`  全局区
+
+  没有访问外部变量 或者 只访问全局变量、静态变量、全局静态变量，这种情况下存放在全局区。生命周期从创建到应用程序结束。
+
+- `__NSStackBlock__ ` 栈区
+
+  用到外部局部变量，没有强指针引用的block都是放在栈区。在arc下，默认会将block从栈区拷贝到堆区
+
+- `__NSMallocBlock__` 堆区
+
+  访问了处于堆区的变量，有强指针引用等就会放在堆区。在arc下，栈区的也默认都会拷贝到堆区
+
+所以在arc下，默认只有两种形式存在，全局区和堆区。使用strong或者copy修饰都没有问题
+
+
+
 ## block本质
 
 上节描述了block的使用和一些使用规则。看到了如果在block内修改局部变量会直接报错，接下来就从这个角度来分析block的本质
 
+```c
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        
+        int a = 10;
+        
+        void (^block)(void) = ^{
+            printf("%d \n", a);
+        };
+        
+        a = 20;
+        
+        printf("%d \n", a);
+        
+        block();
+        
+    }
+    return 0;
+}
+
+result:
+20
+10
+```
+
+这里有两种方法去窥探一下block的本质
+
+1. 执行clang命令把代码转换为cpp，可以基本上看到苹果内部是怎么实现的
+
+```
+xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m
+```
+
+2. 通过[官方开源库](https://opensource.apple.com/source/libclosure/) 查看 `Block_private.h` 头文件可以看到block的定义。这里看到的代码和第一种方式转换出来的基本保持一致
 
 
 
+我们看通过第一种转换出来的cpp文件，有三万多行代码，直接拉到最底部就可以找到main函数
+
+```c
+int main(int argc, const char * argv[]) {
+    /* @autoreleasepool */ { __AtAutoreleasePool __autoreleasepool; 
+
+        int a = 10;
+
+        void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a));
+
+        a = 20;
+
+        printf("%d \n", a);
+
+        ((void (*)(__block_impl *))((__block_impl *)block)->FuncPtr)((__block_impl *)block);
+
+    }
+    return 0;
+}
+```
+
+```
+void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a));
+```
+
+这一行是我们写的block的定义和创建，实际调用了`__main_block_impl_0` 函数
+
+```c
+struct __block_impl {
+  void *isa;
+  int Flags;
+  int Reserved;
+  void *FuncPtr;
+};
+
+static struct __main_block_desc_0 {
+  size_t reserved;
+  size_t Block_size;
+}
+
+struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  int a;
+  
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, int _a, int flags=0) : a(_a) {
+    impl.isa = &_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+```
+
+![block_layout](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/block_img/block2.png)
+
+从代码上也可以看出block的布局，上图引用网上一张著名的block_layout图片。
+
+- 第一个就是isa，oc中所有对象都有isa，从这点可以判断block实际也是一个oc对象
+
+- flags对象block的一些状态
+
+  ```c
+  // Values for Block_layout->flags to describe block objects
+  enum {
+      BLOCK_DEALLOCATING =      (0x0001),  // runtime
+      BLOCK_REFCOUNT_MASK =     (0xfffe),  // runtime
+      BLOCK_NEEDS_FREE =        (1 << 24), // runtime
+      BLOCK_HAS_COPY_DISPOSE =  (1 << 25), // compiler
+      BLOCK_HAS_CTOR =          (1 << 26), // compiler: helpers have C++ code
+      BLOCK_IS_GC =             (1 << 27), // runtime
+      BLOCK_IS_GLOBAL =         (1 << 28), // compiler
+      BLOCK_USE_STRET =         (1 << 29), // compiler: undefined if !BLOCK_HAS_SIGNATURE
+      BLOCK_HAS_SIGNATURE  =    (1 << 30), // compiler
+      BLOCK_HAS_EXTENDED_LAYOUT=(1 << 31)  // compiler
+  };
+  ```
+
+- reserved 目前从资料上来看是保留未用的
+
+- invoke 指向函数指针，调用invoke实际上就是实现的block内部代码
+
+- descriptor 对应的是 `Block_descriptor_* ` 结构体
+
+  - reserved
+  - size： 整个block内存布局的大小
+  - copy、dispose： 对应外部对象类型捕获的内存管理
+
+- variables: block捕获的外部对象或者基本类型数据都会在这里展示，例如int a、Person *p对象
+
+  ```c
+  struct __main_block_impl_0 {
+    struct __block_impl impl;
+    struct __main_block_desc_0* Desc;
+    
+    int a;
+    Person *p;
+  };
+  ```
+
+
+
+上面简单分析了block的内存布局，接下来回到调用时候的传递参数，传了三个参数，分别对应构造函数的形参
+
+- `__main_block_func_0` 赋值给了impl.FuncPtr，也就是调用的函数指针
+
+  ```c
+  static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+    int a = __cself->a; // bound by copy
+  
+              printf("%d \n", a);
+          }
+  ```
+
+  也就是说调用block的时候会调用__main_block_func_0这个函数，内部实现的代码就是我们之前写的block的代码
+
+- `__main_block_desc_0_DATA`  主要是对应的一些描述信息。对应Desc，也就是 `__main_block_desc_0` 
+
+  ```c
+  static struct __main_block_desc_0 {
+    size_t reserved;
+    size_t Block_size;
+  } __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};
+  ```
+
+  reserved字段保留为0，block_size是整个 __main_block_impl_0 的大小
+
+- 第三个字段 a 就是我们定义的局部变量，在`__main_block_impl_0`内部同时也有一个int a，这里直接把外面的局部变量值直接赋值给了内部的int a。
+
+- 如果有多个引用，比如还引用了一个person对象，这里就会把person对象也传递进去
+
+  ```c
+          void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a, p, 570425344));
+  ```
+
+- 最后一个参数是flags，对应的就是block_layout -> flags，具体falgs类型上部分有提到
+
+
+
+至此，block的定义和实现部分转换后的代码基本分析完毕了。接着往下看调用的实现
+
+```c
+        ((void (*)(__block_impl *))((__block_impl *)block)->FuncPtr)((__block_impl *)block);
+```
+
+直接就是调用 block -> FuncPtr，上面已经提到了，FuncPtr就是对应的block的内部实现代码，就是调用的 `__main_block_func_0` 
+
+
+
+从上面的分析可以看出来一点为什么局部变量的值没有被修改，因为是把外部值直接传递给了我们内部自己定义的 int a，所以在外面的所有修改已经和内部没有关系了。
+
+
+
+### __block修饰符
+
+如果想要修改局部变量的值，官方给出的做法就是在变量定义前加上 `__block` 修饰符
+
+```c
+int main(int argc, const char * argv[]) {
+    @autoreleasepool {
+        
+        __block int a = 10;
+        Person *p = [[Person alloc] init];
+        p.age = 10;
+        
+        void (^block)(void) = ^{
+            printf("%d %d \n", a, p.age);
+        };
+        
+        a = 20;
+        
+        printf("%d \n", a);
+        
+        block();
+    }
+    return 0;
+}
+```
+
+添加上`__block` 修饰符之后，运行结果是符合预期的。我们再转换为cpp文件看一看发生了什么变化
+
+```c
+int main(int argc, const char * argv[]) {
+    /* @autoreleasepool */ { __AtAutoreleasePool __autoreleasepool; 
+
+        __attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void*)0,(__Block_byref_a_0 *)&a, 0, sizeof(__Block_byref_a_0), 10};
+                            
+
+        void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, (__Block_byref_a_0 *)&a, 570425344));
+
+        (a.__forwarding->a) = 20;
+
+        printf("%d \n", (a.__forwarding->a));
+
+        ((void (*)(__block_impl *))((__block_impl *)block)->FuncPtr)((__block_impl *)block);
+
+    }
+    return 0;
+}
+```
+
+对比之前发现了定义变量的地方变的复杂了很多，生成了一个`__Block_byref_a_0` 对象，可以看到实际上也是一个oc对象
+
+```c
+struct __Block_byref_a_0 {
+  void *__isa;
+__Block_byref_a_0 *__forwarding;
+ int __flags;
+ int __size;
+ int a;
+};
+```
+
+- 第二个参数 `__forwarding` 对应的是自身
+- 第四个参数是size
+- 最后一个参数是保存的局部变量的值
+
+接着来看一下block的内部布局发生了什么变化
+
+```c
+struct __main_block_impl_0 {
+  struct __block_impl impl;
+  struct __main_block_desc_0* Desc;
+  __Block_byref_a_0 *a; // by ref
+  
+  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, Person *_p, __Block_byref_a_0 *_a, int flags=0) : p(_p), a(_a->__forwarding) {
+    impl.isa = &_NSConcreteStackBlock;
+    impl.Flags = flags;
+    impl.FuncPtr = fp;
+    Desc = desc;
+  }
+};
+```
+
+之前的 int a，现在变成了 `__Block_byref_a_0 *a;`
+
+```c
+static void __main_block_func_0(struct __main_block_impl_0 *__cself) {
+  __Block_byref_a_0 *a = __cself->a; // bound by ref
+  Person *p = __cself->p; // bound by copy
+
+            printf("%d %d \n", (a->__forwarding->a), ((int (*)(id, SEL))(void *)objc_msgSend)((id)p, sel_registerName("age")));
+        }
+```
+
+具体实现里面也是通过调用__Block_byref_a_0对象内部的a也获取值
+
+外部修改值得时候，也会对应的修改byref对象内部的值，所以在里面我们获取的就是最新值
+
+总结来说，使用`__block` 修饰符的时候，会将基本数据类型包装成一个`__Block_byref_a_0` 对象类型，基本数据类型的值存储在对象内部的属性中。
+
+
+
+**__forwarding**
+
+在使用`__block`修饰符的时候会发现一个问题， `__Block_byref_a_0` 结构体内第二个参数 `__forwarding` 指向的就是自身，而且在修改或使用的时候都会通过 `__forwarding` 去间接调用
+
+```c
+(a.__forwarding->a) = 20;
+
+printf("%d \n", (a->__forwarding->a));
+```
+
+这是为什么呢？
+
+我们已经知道了block会存在全局区、栈区和堆区。
+
+- 当block在栈上时候，forwarding指针就指向了自身。
+
+- 当block被拷贝到堆上的时候，访问栈上的block，forwarding指针这时候指向了堆上的block结构体，访问堆上的block，forwarding指针指向了自身，也就是堆上的block
+
+这样通过forwarding中转调用，无论栈或者堆每次都能访问到正确的`__block`变量
+
+
+
+
+
+### Copy/Release
+
+_Block_copy
+
+_Block_release
+
+
+
+_Block_object_assign
+
+_Block_object_dispose
+
+
+
+_Block_byref_copy
+
+_Block_byref_release
+
+
+
+### Block循环引用
+
+`__weak`  建议使用此修饰符
+
+`__unsafe_retained`
+
+`__block` 必须调用block
 
 
 
