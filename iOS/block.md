@@ -620,13 +620,109 @@ printf("%d \n", (a->__forwarding->a));
 
 
 
+### Block Copy/Release
+
+当block从栈上拷贝到堆上时，会调用`_Block_copy` 函数拷贝block，同时也会block内部所有引用的对象和 使用`__block`修饰的变量 调用`_Block_object_assign`进行拷贝
 
 
-### Copy/Release
 
-_Block_copy
+#### _Block_copy
 
-_Block_release
+在源码中`runtime.cpp` 中可以找到此函数的实现
+
+```c
+// Copy, or bump refcount, of a block.  If really copying, call the copy helper if present.
+void *_Block_copy(const void *arg) {
+    struct Block_layout *aBlock;
+
+    if (!arg) return NULL;
+    
+    // The following would be better done as a switch statement
+    aBlock = (struct Block_layout *)arg;
+    if (aBlock->flags & BLOCK_NEEDS_FREE) {
+        // latches on high
+        latching_incr_int(&aBlock->flags);
+        return aBlock;
+    }
+    else if (aBlock->flags & BLOCK_IS_GLOBAL) {
+        return aBlock;
+    }
+    else {
+        // Its a stack block.  Make a copy.
+        struct Block_layout *result =
+            (struct Block_layout *)malloc(aBlock->descriptor->size);
+        if (!result) return NULL;
+        memmove(result, aBlock, aBlock->descriptor->size); // bitcopy first
+#if __has_feature(ptrauth_calls)
+        // Resign the invoke pointer as it uses address authentication.
+        result->invoke = aBlock->invoke;
+#endif
+        // reset refcount
+        result->flags &= ~(BLOCK_REFCOUNT_MASK|BLOCK_DEALLOCATING);    // XXX not needed
+        result->flags |= BLOCK_NEEDS_FREE | 2;  // logical refcount 1
+        _Block_call_copy_helper(result, aBlock);
+        // Set isa last so memory analysis tools see a fully-initialized object.
+        result->isa = _NSConcreteMallocBlock;
+        return result;
+    }
+}
+```
+
+1. 首先将传进来的block转换为一个aBlock，然后根据block的flags做相应的处理
+
+2. 第二步，如果flags包含BLOCK_NEEDS_FREE，则证明该block已经存在引用计数，代表就是在堆上，只用对应的增加引用计数即可
+
+3. 第三步，判断如果flags包含BLOCK_IS_GLOBAL，则证明block为全局block，全局block一直存在内存中，不需要做对应内存管理，所以此步骤直接返回该block
+
+4. 第四步，else 则说明此block是存在于栈上的，需要进行拷贝，下面分析拷贝的步骤：
+
+   1. 首先在堆上malloc分配一段空间，大小是`aBlock->descriptor->size` ，对应原有block的大小
+
+   2. 然后`memmove`复制原有block到堆上，复制大小为原有block大小，完全复制
+
+   3. 根据 `__has_feature(ptrauth_calls)` 编译器特性，执行了一句代码 `result->invoke = aBlock->invoke;`，此处的猜想是如果使用了地址空间随机化，则重新指定invoke指针的地址
+
+   4. 接下来有两句设置flags的代码
+
+      ```c
+      // reset refcount
+              result->flags &= ~(BLOCK_REFCOUNT_MASK|BLOCK_DEALLOCATING);    // XXX not needed
+              result->flags |= BLOCK_NEEDS_FREE | 2;  // logical refcount 1
+      ```
+
+      第一句=右边的代码计算结果为0，一个数&=0，则会清空其他位置的数据，也就是注释所说的重置引用计数，因为引用计数存在低位，其他位被清空之后，引用计数也就对应被清空
+
+      在清空之后，第二句代码则重新包含 BLOCK_NEEDS_FREE | 2，设置引用计数。 在这里我的理解是 BLOCK_NEEDS_FREE 标识有引用计数，需要释放，|2在低二位设置一个标识，标识引用计数的数量
+
+   5. 接下来 `_Block_call_copy_helper` 会根据原block中是否有需要内存管理的对象，来进行对应拷贝到堆上
+
+   6. 最后一步设置isa为`_NSConcreteMallocBlock` 标明block的类型
+
+大体上block的copy过程分析完了，其中一些细节由于知识有限不是很清楚，有待进一步学习分析
+
+
+
+#### _Block_release
+
+有copy就会对应有release，接下来就来分析一下release的代码
+
+```c
+// API entry point to release a copied Block
+void _Block_release(const void *arg) {
+    struct Block_layout *aBlock = (struct Block_layout *)arg;
+    if (!aBlock) return;
+    if (aBlock->flags & BLOCK_IS_GLOBAL) return;
+    if (! (aBlock->flags & BLOCK_NEEDS_FREE)) return;
+
+    if (latching_decr_int_should_deallocate(&aBlock->flags)) {
+        _Block_call_dispose_helper(aBlock);
+        _Block_destructInstance(aBlock);
+        free(aBlock);
+    }
+}
+```
+
+
 
 
 
