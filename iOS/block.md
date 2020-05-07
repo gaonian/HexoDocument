@@ -9,7 +9,7 @@ Blocks是C语言的扩充功能。可以用一句话来表示Blocks的扩充功�
 
 
 
-```
+```c
 int multiplier = 7;
 int (^myBlock)(int) = ^(int num) {
 	return num * multiplier;
@@ -24,7 +24,7 @@ int (^myBlock)(int) = ^(int num) {
 
 Block变量保存对block的引用，使用类似于声明函数指针的语法来声明他们，除了使用 ^ 代替 * ，block类型可以与c类型系统的其余部分完全互相操作。以下是所有有效的block变量声明：
 
-```
+```c
 void（^ blockReturningVoidWithVoidArgument）（void）;
 int（^ blockReturningIntWithIntAndCharArguments）（int，char）;
 void（^ arrayOfTenBlocksReturningVoidWithIntArgument [10]）（int）;
@@ -34,7 +34,7 @@ block还可以支持可变参数(......)，不带参数的block必须在参数�
 
 当在多个位置使用相同的block时，通常可以使用typedef为block创建类型
 
-```
+```c
 typedef float (^MyBlockType)(float, float);
  
 MyBlockType myFirstBlock = // ... ;
@@ -45,7 +45,7 @@ MyBlockType mySecondBlock = // ... ;
 
 ### 创建
 
-```
+```c
 float (^oneFrom)(float);
  
 oneFrom = ^(float aFloat) {
@@ -69,7 +69,7 @@ block是由  `^ 返回值类型 参数列表 表达式` 几部分组成的，返
 
 如果声明了一个block为变量，则可以像函数一样使用
 
-```
+```c
 int (^oneFrom)(int) = ^(int anInt) {
     return anInt - 1;
 };
@@ -95,7 +95,7 @@ float howFar = distanceTraveled(0.0, 9.8, 1.0);
 
 可以像传递任何其他参数一样，将block作为函数参数传递。然而，在许多情况下，不需要声明block；相反，只需在需要block作为参数的地方内联实现它们
 
-```
+```c
 char *myCharacters[3] = { "TomJohn", "George", "Charles Condomine" };
  
 qsort_b(myCharacters, 3, sizeof(char *), ^(const void *l, const void *r) {
@@ -108,7 +108,7 @@ qsort_b(myCharacters, 3, sizeof(char *), ^(const void *l, const void *r) {
 // myCharacters is now { "Charles Condomine", "George", "TomJohn" }
 ```
 
-```
+```c
 #include <dispatch/dispatch.h>
 size_t count = 10;
 dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
@@ -118,7 +118,7 @@ dispatch_apply(count, queue, ^(size_t i) {
 });
 ```
 
-```
+```c
 NSArray *array = @[@"A", @"B", @"C", @"A", @"B", @"Z", @"G", @"are", @"Q"];
 NSSet *filterSet = [NSSet setWithObjects: @"A", @"Z", @"Q", nil];
  
@@ -150,7 +150,7 @@ indexes: <NSIndexSet: 0x10236f0>[number of indexes: 2 (in 2 ranges), indexes: (0
 
 可以使用C函数复制和释放block：
 
-```
+```c
 Block_copy();
 Block_release();
 ```
@@ -190,7 +190,7 @@ Blocks也支持其他两种类型的变量:
 
 下面例子展示了使用非静态的自动变量
 
-```
+```c
 int x = 123;
  
 void (^printXAndY)(int) = ^(int y) {
@@ -203,7 +203,7 @@ printXAndY(456); // prints: 123 456
 
 在尝试修改x的值时，会出现error
 
-```
+```c
 int x = 123;
  
 void (^printXAndY)(int) = ^(int y) {
@@ -219,7 +219,7 @@ void (^printXAndY)(int) = ^(int y) {
 
 通过 `__block` 修饰符可以使外部导入的变量可变的，即读写。__block可以同register，auto，static一样修饰局部变量
 
-```
+```c
 __block int x = 123; //  x lives in block storage
  
 void (^printXAndY)(int) = ^(int y) {
@@ -231,7 +231,7 @@ printXAndY(456); // prints: 579 456
 // x is now 579
 ```
 
-```
+```c
 extern NSInteger CounterGlobal;
 static NSInteger CounterStatic;
  
@@ -265,7 +265,7 @@ Blocks支持OC、c++对象、和另外的block作为变量
 - 如果通过引用访问实例变量，则对self进行强引用
 - 如果通过值访问实例变量，则会对该变量进行强引用
 
-```
+```c
 dispatch_async(queue, ^{
     // instanceVariable is used by reference, a strong reference is made to self
     doSomethingWithObject(instanceVariable);
@@ -670,7 +670,9 @@ void *_Block_copy(const void *arg) {
 
 1. 首先将传进来的block转换为一个aBlock，然后根据block的flags做相应的处理
 
-2. 第二步，如果flags包含BLOCK_NEEDS_FREE，则证明该block已经存在引用计数，代表就是在堆上，只用对应的增加引用计数即可
+2. 第二步，如果flags包含BLOCK_NEEDS_FREE，则证明该block已经存在引用计数，代表就是在堆上，只用对应的增加引用计数即可。
+
+   此处调用了`latching_incr_int` 函数，内部对原始flags做了一个加2的操作
 
 3. 第三步，判断如果flags包含BLOCK_IS_GLOBAL，则证明block为全局block，全局block一直存在内存中，不需要做对应内存管理，所以此步骤直接返回该block
 
@@ -692,7 +694,7 @@ void *_Block_copy(const void *arg) {
 
       第一句=右边的代码计算结果为0，一个数&=0，则会清空其他位置的数据，也就是注释所说的重置引用计数，因为引用计数存在低位，其他位被清空之后，引用计数也就对应被清空
 
-      在清空之后，第二句代码则重新包含 BLOCK_NEEDS_FREE | 2，设置引用计数。 在这里我的理解是 BLOCK_NEEDS_FREE 标识有引用计数，需要释放，|2在低二位设置一个标识，标识引用计数的数量
+      在清空之后，第二句代码则重新按位或上了` BLOCK_NEEDS_FREE | 2`，设置引用计数。 在这里我的理解是 BLOCK_NEEDS_FREE 标识有引用计数，需要释放，|2在低二位设置一个标识，标识引用计数的数量
 
    5. 接下来 `_Block_call_copy_helper` 会根据原block中是否有需要内存管理的对象，来进行对应拷贝到堆上
 
@@ -722,19 +724,71 @@ void _Block_release(const void *arg) {
 }
 ```
 
+1. 第一步是先转换block，判空处理
+
+2. 接下来看是否是`BLOCK_IS_GLOBAL` 全局区，是的话返回不做处理
+
+3. 第三步看`BLOCK_NEEDS_FREE` 状态，此状态标明是在堆区有引用计数，如果不是此状态，也直接返回
+
+4. 处理完一些其他情况之后，就该正式做release操作了，首先调用`latching_decr_int_should_deallocate` 判断是否需要dealloc
+
+   ```c
+   // return should_deallocate?
+   static bool latching_decr_int_should_deallocate(volatile int32_t *where) {
+       while (1) {
+           int32_t old_value = *where;
+           if ((old_value & BLOCK_REFCOUNT_MASK) == BLOCK_REFCOUNT_MASK) {
+               return false; // latched high
+           }
+           if ((old_value & BLOCK_REFCOUNT_MASK) == 0) {
+               return false;   // underflow, latch low
+           }
+           int32_t new_value = old_value - 2;
+           bool result = false;
+           if ((old_value & (BLOCK_REFCOUNT_MASK|BLOCK_DEALLOCATING)) == 2) {
+               new_value = old_value - 1;
+               result = true;
+           }
+           if (OSAtomicCompareAndSwapInt(old_value, new_value, where)) {
+               return result;
+           }
+       }
+   }
+   ```
+
+   我们在copy函数增加引用计数的时候会对flags+2，所以在这里首先会对flags做-2的操作
+
+   然后如果old_value == 2 ，直接对old_value-1，减1之后flags就变成了`BLOCK_DEALLOCATING` ，这个值表示block需要释放
+
+   最后交换flags的值，返回result，告诉外界是否需要释放
+
+5. 由于上一步判断需要释放的时候已经对flags进行了减引用计数的操作，如果不需要释放，则此时release函数已经执行完毕了。 
+
+6. 如果需要释放，调用`_Block_call_dispose_helper` 函数对block内部对象进行相应内存管理释放。接着调用`_Block_destructInstance` 函数，此函数没有找到对应的源码，故根据字面意思猜测是对block实例对象进行释放。最后free释放空间
+
+
+
+#### _Block_object_assign
 
 
 
 
-_Block_object_assign
-
-_Block_object_dispose
 
 
 
-_Block_byref_copy
+#### _Block_object_dispose
 
-_Block_byref_release
+
+
+#### _Block_byref_copy
+
+
+
+#### _Block_byref_release
+
+
+
+
 
 
 
