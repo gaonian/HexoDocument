@@ -770,7 +770,124 @@ void _Block_release(const void *arg) {
 
 #### _Block_object_assign
 
+当block拷贝到堆上时，可以引用四种需要帮助的不同类型的东西
 
+1. 基于c++的堆栈对象
+2. 引用Objective-C对象
+3. 其他的block
+4. `__block ` 修改的变量类型
+
+在Block_copy和Block_release调用情况下，编译器会合成 copy 和 dispose 助手函数。
+
+在第一种基于c++堆栈对象的情况下，copy助手函数会调用其构造函数，dispose助手函数会调用析构函数
+
+其余三种情况下，copy助手函数会调用 `_Block_object_assign`， dispose助手函数会调用 `_Block_object_dispose` 去做相应的处理
+
+`__Block_object_assign` 和 `__Block_object_dispose` 的 flags参数类型如下：
+
+- `BLOCK_FIELD_IS_OBJECT (3)`, Objective-C对象
+
+- `BLOCK_FIELD_IS_BLOCK (7)` ，其他的block对象
+
+- `BLOCK_FIELD_IS_BYREF (8)`， `__block` 修饰的变量
+
+  如果`__block`修饰的变量设置为`__weak`，则flags也是 `BLOCK_FIELD_IS_WEAK (16)`
+
+所以，Block copy/dispose 应该只生成 3、7、8、24 这四种flags
+
+
+
+当`__block`修饰符修饰了一个c++对象或者OC对象或者其他的block对象时，编译器也会生成 copy/dispose 助手函数，也会做相应的内存管理操作。
+
+在为oc对象或者其他block调用相同的助手函数时，同时会在flags中提供额外的位信息标识，`BLOCK_BYREF_CALLER (128)`
+
+ 
+
+所以 `__block` copy/dispose 助手将在为 对象 或 其他block 生成3、7的同时，会根据不同的情况增加16或者128。下面是可能出现的情况：
+
+```
+__block id                   128+3       (0x83)
+__block (^Block)             128+7       (0x87)
+__weak __block id            128+3+16    (0x93)
+__weak __block (^Block)      128+7+16    (0x97)
+```
+
+如果是修饰的对象或者block，则对应增加128，如果同时修饰了weak属性，则再对应增加16
+
+
+
+当Blocks或者Block_byrefs包含了对象时，copy方法如下
+
+```c
+void _Block_object_assign(void *destArg, const void *object, const int flags) {
+    const void **dest = (const void **)destArg;
+    switch (os_assumes(flags & BLOCK_ALL_COPY_DISPOSE_FLAGS)) {
+      case BLOCK_FIELD_IS_OBJECT:
+        /*******
+        id object = ...;
+        [^{ object; } copy];
+        ********/
+
+        _Block_retain_object(object);
+        *dest = object;
+        break;
+
+      case BLOCK_FIELD_IS_BLOCK:
+        /*******
+        void (^object)(void) = ...;
+        [^{ object; } copy];
+        ********/
+
+        *dest = _Block_copy(object);
+        break;
+    
+      case BLOCK_FIELD_IS_BYREF | BLOCK_FIELD_IS_WEAK:
+      case BLOCK_FIELD_IS_BYREF:
+        /*******
+         // copy the onstack __block container to the heap
+         // Note this __weak is old GC-weak/MRC-unretained.
+         // ARC-style __weak is handled by the copy helper directly.
+         __block ... x;
+         __weak __block ... x;
+         [^{ x; } copy];
+         ********/
+
+        *dest = _Block_byref_copy(object);
+        break;
+        
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT:
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK:
+        /*******
+         // copy the actual field held in the __block container
+         // Note this is MRC unretained __block only. 
+         // ARC retained __block is handled by the copy helper directly.
+         __block id object;
+         __block void (^object)(void);
+         [^{ object; } copy];
+         ********/
+
+        *dest = object;
+        break;
+
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT | BLOCK_FIELD_IS_WEAK:
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK  | BLOCK_FIELD_IS_WEAK:
+        /*******
+         // copy the actual field held in the __block container
+         // Note this __weak is old GC-weak/MRC-unretained.
+         // ARC-style __weak is handled by the copy helper directly.
+         __weak __block id object;
+         __weak __block void (^object)(void);
+         [^{ object; } copy];
+         ********/
+
+        *dest = object;
+        break;
+
+      default:
+        break;
+    }
+}
+```
 
 
 
