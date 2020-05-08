@@ -889,15 +889,111 @@ void _Block_object_assign(void *destArg, const void *object, const int flags) {
 }
 ```
 
+首先来分析接收的三个参数
 
+```c
+static void _Block_call_copy_helper(void *result, struct Block_layout *aBlock)
+{
+    struct Block_descriptor_2 *desc = _Block_descriptor_2(aBlock);
+    if (!desc) return;
+
+    (*desc->copy)(result, aBlock); // do fixup
+}
+```
+
+从Block_copy中找到上面的函数，从此函数可以看出copy助手函数传入的两个函数一个为拷贝之后堆上的block，一个为原始的block
+
+```c
+static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) {
+    _Block_object_assign((void*)&dst->a, (void*)src->a, 8/*BLOCK_FIELD_IS_BYREF*/);
+    _Block_object_assign((void*)&dst->weakPerson, (void*)src->weakPerson, 3/*BLOCK_FIELD_IS_OBJECT*/);
+    _Block_object_assign((void*)&dst->s, (void*)src->s, 3/*BLOCK_FIELD_IS_OBJECT*/);
+    _Block_object_assign((void*)&dst->s1, (void*)src->s1, 3/*BLOCK_FIELD_IS_OBJECT*/);}
+```
+
+从编译后的cpp中可以找到`void (*copy)(x, x)`实际调用的是`__main_block_copy_0`，  在这里面看到了 `_Block_object_assign`
+
+这样综合分析之后就可以明白三个参数传递的都是什么
+
+1. destArg为copy之后在堆上的block对象
+
+2. object指向copy之前的block对象
+
+3. flags对应如下，区分引用的对象类型
+
+   ```c
+   // Values for _Block_object_assign() and _Block_object_dispose() parameters
+   enum {
+       // see function implementation for a more complete description of these fields and combinations
+       BLOCK_FIELD_IS_OBJECT   =  3,  // id, NSObject, __attribute__((NSObject)), block, ...
+       BLOCK_FIELD_IS_BLOCK    =  7,  // a block variable
+       BLOCK_FIELD_IS_BYREF    =  8,  // the on stack structure holding the __block variable
+       BLOCK_FIELD_IS_WEAK     = 16,  // declared __weak, only used in byref copy helpers
+       BLOCK_BYREF_CALLER      = 128, // called from __block (byref) copy/dispose support routines.
+   };
+   
+   enum {
+       BLOCK_ALL_COPY_DISPOSE_FLAGS = 
+           BLOCK_FIELD_IS_OBJECT | BLOCK_FIELD_IS_BLOCK | BLOCK_FIELD_IS_BYREF |
+           BLOCK_FIELD_IS_WEAK | BLOCK_BYREF_CALLER
+   };
+   ```
+
+
+
+接着正式来看到底做了什么
+
+1. 如果是`BLOCK_FIELD_IS_OBJECT`，即OC对象。对object执行retain操作，赋值为destArg
+2. 如果是`BLOCK_FIELD_IS_BLOCK`，即block对象。则执行Block_copy，进行对应的拷贝操作，赋值给destArg
+3. 如果是`BLOCK_FIELD_IS_BYREF | BLOCK_FIELD_IS_WEAK` 或者 `BLOCK_FIELD_IS_BYREF`，代表`__block` 或者`__block __weak` 修饰的变量。则执行`_Block_byref_copy` 函数，此函数在后面分析
+4. 如果是`BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT` 或者 `BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK`，代表的是`__block`修饰的oc对象或者block，直接赋值给destArg
+5. 如果是`BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT | BLOCK_FIELD_IS_WEAK` 或者 `BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK | BLOCK_FIELD_IS_WEAK`，代表的是 `__block __weak` 修饰的oc对象或者block，也是直接赋值
 
 
 
 #### _Block_object_dispose
 
+dispose对应的是assign，当block销毁时，同时dispose block内部引用的对象
+
+``` c
+// When Blocks or Block_byrefs hold objects their destroy helper routines call this entry point
+// to help dispose of the contents
+void _Block_object_dispose(const void *object, const int flags) {
+    switch (os_assumes(flags & BLOCK_ALL_COPY_DISPOSE_FLAGS)) {
+      case BLOCK_FIELD_IS_BYREF | BLOCK_FIELD_IS_WEAK:
+      case BLOCK_FIELD_IS_BYREF:
+        // get rid of the __block data structure held in a Block
+        _Block_byref_release(object);
+        break;
+      case BLOCK_FIELD_IS_BLOCK:
+        _Block_release(object);
+        break;
+      case BLOCK_FIELD_IS_OBJECT:
+        _Block_release_object(object);
+        break;
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT:
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK:
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_OBJECT | BLOCK_FIELD_IS_WEAK:
+      case BLOCK_BYREF_CALLER | BLOCK_FIELD_IS_BLOCK  | BLOCK_FIELD_IS_WEAK:
+        break;
+      default:
+        break;
+    }
+}
+```
+
+此函数和assign操作是一一对应的，接下来具体步骤分析
+
+1. 如果是`BLOCK_FIELD_IS_BYREF | BLOCK_FIELD_IS_WEAK` 或者 `BLOCK_FIELD_IS_BYREF`，代表`__block` 或者 `__block __weak` 修饰的变量，则执行`_Block_byref_release` 函数，此函数也会在后面分析，此处跳过
+2. 如果是`BLOCK_FIELD_IS_BLOCK` ，代表引用的block对象，执行Block_release函数进行释放
+3. 如果是`BLOCK_FIELD_IS_OBJECT`，执行relase对象的操作，和assign中retain是对应关系
+4. 最后如果是`__block` 或者 `__block __weak` 修饰的oc对象或者block对象，则什么也不做，因为在assign中对应的情况也没有做任何处理
+
 
 
 #### _Block_byref_copy
+
+
 
 
 
