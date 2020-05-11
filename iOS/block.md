@@ -16,7 +16,7 @@ int (^myBlock)(int) = ^(int num) {
 };
 ```
 
-![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/block_img/block1.png)
+![](https://user-gold-cdn.xitu.io/2020/5/11/1720422c616b92ef?w=689&h=279&f=png&s=142422)
 
 
 
@@ -389,7 +389,7 @@ struct __main_block_impl_0 {
 };
 ```
 
-![block_layout](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/block_img/block2.png)
+![block_layout](https://user-gold-cdn.xitu.io/2020/5/11/1720422da38055a1?w=500&h=500&f=png&s=23846)
 
 从代码上也可以看出block的布局，上图引用网上一张著名的block_layout图片。
 
@@ -1535,14 +1535,6 @@ iOS中hook oc对象用系统的method swizzer可以很方便的做到。但是bl
 
 [一种查看Block中引用的所有外部对象](https://juejin.im/post/5d7e3b8de51d4561ac7bcd5f)
 
+[Hook Objective-C Block with Libffi](http://yulingtianxia.com/blog/2018/02/28/Hook-Objective-C-Block-with-Libffi/)
 
-
-
-
-
-
-
-
-
-
-![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/block_img/fork@2x.png)
+[Block hook 正确姿势](https://juejin.im/post/5c653921e51d457fa676eafc)
