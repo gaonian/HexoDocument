@@ -65,8 +65,6 @@ block是由  `^ 返回值类型 参数列表 表达式` 几部分组成的，返
 
 ### 使用blocks
 
-#### 调用block
-
 如果声明了一个block为变量，则可以像函数一样使用
 
 ```c
@@ -148,8 +146,6 @@ indexes: <NSIndexSet: 0x10236f0>[number of indexes: 2 (in 2 ranges), indexes: (0
 
 ### Blocks和变量
 
-#### 变量类型
-
 在block对象的代码体中，变量可以用五种不同的方式处理。
 
 可以引用三种标准类型的变量，就像引用函数一样：
@@ -158,7 +154,7 @@ indexes: <NSIndexSet: 0x10236f0>[number of indexes: 2 (in 2 ranges), indexes: (0
 
 - 全局函数（技术上是不可变的）
 
-- 封闭作用域中的局部变量和参数
+- 局部变量和参数
 
 Blocks也支持其他两种类型的变量:
 
@@ -201,6 +197,8 @@ void (^printXAndY)(int) = ^(int y) {
 ```
 
 若要允许在block中更改变量，请使用 `__block` 修饰符
+
+
 
 #### __block修饰类型
 
@@ -281,13 +279,18 @@ block具体有三种类型
 
 - `__NSStackBlock__ ` 栈区
 
-  用到外部局部变量，没有强指针引用的block都是放在栈区。在arc下，默认会将block从栈区拷贝到堆区
+  用到外部局部变量，没有强指针引用的block都是放在栈区。作用域结束，就被销毁。
+
+  在arc下，以下情况默认会将block从栈区拷贝到堆区
+
+  - 手动调用copy
+  - Block作为函数的返回值
+  - Block被强引用，Block被赋值给`__strong` 或者id类型
+  - 调用系统API入参中含有usingBlock的方法
 
 - `__NSMallocBlock__` 堆区
 
-  访问了处于堆区的变量，有强指针引用等就会放在堆区。在arc下，栈区的也默认都会拷贝到堆区
-
-所以在arc下，默认只有两种形式存在，全局区和堆区。使用strong或者copy修饰都没有问题
+  访问了处于堆区的变量，有强指针引用等就会放在堆区
 
 
 
@@ -419,8 +422,10 @@ struct __main_block_impl_0 {
   - reserved
   - size： 整个block内存布局的大小
   - copy、dispose： 对应外部对象类型捕获的内存管理
+  - signature：block的方法签名，对应flags `BLOCK_HAS_SIGNATURE`
+  - layout：描述了block外部引用对象的内存布局，对应flags `BLOCK_HAS_EXTENDED_LAYOUT`
 
-- variables: block捕获的外部对象或者基本类型数据都会在这里展示，例如int a、Person *p对象
+- variables: block捕获的外部对象或者基本类型数据都会在这里展示，例如int a、Person *p对象。具体多少有多少对象可以根据desc3的layout获取到
 
   ```c
   struct __main_block_impl_0 {
@@ -464,7 +469,7 @@ struct __main_block_impl_0 {
 - 如果有多个引用，比如还引用了一个person对象，这里就会把person对象也传递进去
 
   ```c
-          void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a, p, 570425344));
+  void (*block)(void) = ((void (*)())&__main_block_impl_0((void *)__main_block_func_0, &__main_block_desc_0_DATA, a, p, 570425344));
   ```
 
 - 最后一个参数是flags，对应的就是block_layout -> flags，具体falgs类型上部分有提到
@@ -474,7 +479,7 @@ struct __main_block_impl_0 {
 至此，block的定义和实现部分转换后的代码基本分析完毕了。接着往下看调用的实现
 
 ```c
-        ((void (*)(__block_impl *))((__block_impl *)block)->FuncPtr)((__block_impl *)block);
+((void (*)(__block_impl *))((__block_impl *)block)->FuncPtr)((__block_impl *)block);
 ```
 
 直接就是调用 block -> FuncPtr，上面已经提到了，FuncPtr就是对应的block的内部实现代码，就是调用的 `__main_block_func_0` 
@@ -1048,7 +1053,7 @@ struct Block_byref_3 {
 
 **Block_byref_3**
 
-- 引用的所有原来对象都在layout里面，layout采用了一种压缩布局方式，这种压缩布局会在第三大部分block内部引用对象里详细讲解，这里只需要了解引用的对象信息在这里就行
+- layout描述了引用的外部对象布局信息，官方注释上说layout和block的layout一样采用了一种压缩布局方式，但是经测试发现，在byref对象内部的layout存储的就是外部对象的地址值，这里有待深究？
 
 
 
@@ -1509,7 +1514,14 @@ void showBlockExtendedLayout(id block) {
 
 ## hook block
 
+iOS中hook oc对象用系统的method swizzer可以很方便的做到。但是block作为特殊的oc对象，方法交换并不适用。hook block的本质就是找到invoke函数指针和block的signature方法签名。
 
+网上大致有两种实现方式
+
+- 一种是把invoke指针指向消息转发，然后通过NSInvocation进行调用，参考文章[Block hook 正确姿势](https://juejin.im/post/5c653921e51d457fa676eafc)
+- 另外一种是使用libffi来动态调用c函数，参考文章 [Hook Objective-C Block with Libffi](http://yulingtianxia.com/blog/2018/02/28/Hook-Objective-C-Block-with-Libffi/)
+
+如果需要hook block的，可以参考上面两篇文章进行学习，每一个都有对应的demo实现。这里就不再赘述了
 
 
 
