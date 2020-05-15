@@ -2,6 +2,7 @@
 title: Hexo博客搭建
 date: 2016/7/13 20:46:25
 categories: Hexo博客
+cover: https://cdn.jsdelivr.net/gh/jerryc127/CDN/img/hexo-theme-butterfly-doc-cover.jpg
 ---
 
 
@@ -20,43 +21,57 @@ Hexo 是一个快速、简洁且高效的博客框架。Hexo 使用 [Markdown](h
 
 - Mac
 
-  - mac可以通过homebrew快速安装
+  1. 首先通过homebrew安装node
 
-  ```
-  brew install node
-  ```
+     ```
+     brew install node
+     ```
 
-  - CentOS 下安装
+  2. 安装n
 
-    1. 从官网下载压缩包
+     ```
+     sudo node install -g n
+     ```
 
-       ```
-       wget https://nodejs.org/dist/v10.16.0/node-v10.16.0-linux-x64.tar.xz
-       ```
+  3. 通过n安装稳定版
 
-    2. 解压
+     ```
+     n stable
+     ```
 
-       ```
-       tar xf node-v10.16.0-linux-x64.tar.xz
-       ```
+  
 
-    3. 解压之后最好修改文件夹名字为node，不要后面的版本号信息。修改完之后进入node文件夹
+- CentOS 下安装
 
-       ```
-       cd node
-       ```
+  1. 从官网下载压缩包
 
-       这是操作 `node -v` `npm -v` 查看是否已经好使
+     ```
+     wget https://nodejs.org/dist/v10.16.0/node-v10.16.0-linux-x64.tar.xz
+     ```
 
-    4. 最后一步就是配置系统环境变量，配置之后就可以在任意地方使用 `node` 命令
+  2. 解压
 
-       ```
-       export PATH=$PATH:/xxxx/node/bin
-       
-       source /etc/profile
-       ```
+     ```
+     tar xf node-v10.16.0-linux-x64.tar.xz
+     ```
 
-       
+  3. 解压之后最好修改文件夹名字为node，不要后面的版本号信息。修改完之后进入node文件夹
+
+     ```
+     cd node
+     ```
+
+     这是操作 `node -v` `npm -v` 查看是否已经好使
+
+  4. 最后一步就是配置系统环境变量，配置之后就可以在任意地方使用 `node` 命令
+
+     ```
+     export PATH=$PATH:/xxxx/node/bin
+     
+     source /etc/profile
+     ```
+
+     
 
 ### 安装hexo
 
@@ -140,38 +155,6 @@ Hexo的模板是指在新建的文章文件中默认填充的内容。例如，�
 
 
 
-### 主题更换
-
-安装完hexo之后，我们一般都开始选用一个自己喜欢的主题配置。 这里以[Butterfly](https://docs.jerryc.me/)为例
-
-1. 首先进入hexo的根目录下
-
-2. 下载Butterfly
-
-   ```
-   git clone -b master https://github.com/jerryc127/hexo-theme-butterfly.git themes/Butterfly
-   ```
-
-3. 修改站点配置文件 _config.yml，把主题改为 Butterfly
-
-   ```
-   theme: Butterfly
-   ```
-
-> 如果没有 pug 以及 stylus 的渲染器，请下载安装： `npm install hexo-renderer-pug hexo-renderer-stylus --save` or `yarn add hexo-renderer-pug hexo-renderer-stylus`
-
-推荐把主题默认的配置文件`_config.yml`复制到 Hexo 工作目录下的`source/_data/butterfly.yml`，如果`source/_data`的目录不存在那就创建一个。
-
-这里有两个配置文件说明一下
-
-_config.yml 是hexo的配置文件，在hexo跟目录下
-
-butterfly.yml 是主题的配置文件，在这个配置文件内可以修改主题的一些设置
-
-[Butterfly具体配置]([https://docs.jerryc.me/config.html#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AA%AC%E6%98%8E](https://docs.jerryc.me/config.html#配置文件説明))
-
-
-
 ### 常用命令
 
 #### generate
@@ -238,6 +221,38 @@ hexo clean
 清除缓存文件 (`db.json`) 和已生成的静态文件 (`public`)。
 
 在某些情况（尤其是更换主题后），如果发现您对站点的更改无论如何也不生效，您可能需要运行该命令。
+
+
+
+### 主题更换
+
+安装完hexo之后，我们一般都开始选用一个自己喜欢的主题配置。 这里以[Butterfly](https://docs.jerryc.me/)为例
+
+1. 首先进入hexo的根目录下
+
+2. 下载Butterfly
+
+   ```
+   git clone -b master https://github.com/jerryc127/hexo-theme-butterfly.git themes/Butterfly
+   ```
+
+3. 修改站点配置文件 _config.yml，把主题改为 Butterfly
+
+   ```
+   theme: Butterfly
+   ```
+
+> 如果没有 pug 以及 stylus 的渲染器，请下载安装： `npm install hexo-renderer-pug hexo-renderer-stylus --save` or `yarn add hexo-renderer-pug hexo-renderer-stylus`
+
+推荐把主题默认的配置文件`_config.yml`复制到 Hexo 工作目录下的`source/_data/butterfly.yml`，如果`source/_data`的目录不存在那就创建一个。
+
+这里有两个配置文件说明一下
+
+_config.yml 是hexo的配置文件，在hexo跟目录下
+
+butterfly.yml 是主题的配置文件，在这个配置文件内可以修改主题的一些设置
+
+[Butterfly具体配置](https://docs.jerryc.me/#/zh-cn/config/theme-config)
 
 
 
@@ -537,6 +552,12 @@ location / {
 ### 服务器
 
 如果是服务器，则更简单，直接在域名后台解析配置的时候，类型选择 `A记录`，值直接使用服务器的ip地址即可
+
+
+
+### Hexo迁移
+
+如果更换电脑，需要首先在新电脑上安装node（切记需要安装稳定版），git。 然后安装hexo。 准备工作完成之后，可以把旧电脑上的hexo文件夹拷贝过来，然后进入文件夹内执行`npm install`。这样就ok了
 
 
 
