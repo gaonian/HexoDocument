@@ -565,6 +565,8 @@ location / {
 
 如果使用最新的node，会发现本地server运行正常，但是public里面生成的所有文件大小都为0，上传不了git。 此时首先要做的就是把node切换为稳定版，然后把public文件夹删除，重新执行`hexo clean`  `hexo g` ，此时在看public文件夹已经正常，可以成功执行并上传。
 
+[参考文章](https://blog.tcs-y.com/2020/04/26/hexo-index-0kb/)
+
 
 
 ## 参考资料
