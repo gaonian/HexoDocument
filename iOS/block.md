@@ -1,13 +1,12 @@
 ---
 title: block解析
 categories: iOS
+cover: https://user-gold-cdn.xitu.io/2020/5/11/1720422da38055a1?w=500&h=500&f=png&s=23846
 ---
 
 ## 简介
 
 Blocks是C语言的扩充功能。可以用一句话来表示Blocks的扩充功能：带有自动变量（局部变量）的匿名函数。
-
-
 
 ```c
 int multiplier = 7;
@@ -1209,6 +1208,21 @@ block循环引用问题是开发中最常见的问题，也是最熟悉的。
   ```
 
 arc下建议使用 `__weak` 解决方案
+
+
+
+还有一种情况，当使用`__weak` 修饰符修饰的时候，如果block内部有gcd延迟执行代码，block释放以后，内部弱引用的对象也会被释放，再使用的话就会显示null。所以在这种情况下，在block内部需要对weak再进行`__strong`强引用
+
+```objective-c
+__weak typeof(self) weakSelf = self;
+self.testBlock = ^{
+    __strong typeof(weakSelf) strongSelf = weakSelf;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        NSLog(@"--- %@", strongSelf.name);
+    });
+};
+self.testBlock();
+```
 
 
 
