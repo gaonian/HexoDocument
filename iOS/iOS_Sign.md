@@ -296,7 +296,7 @@ security cms -D -i JBTest.mobileprovision > JBTest.plist
 
 ## 参考资料
 
-- [图解密码技术]([https://baike.baidu.com/item/%E5%9B%BE%E8%A7%A3%E5%AF%86%E7%A0%81%E6%8A%80%E6%9C%AF/18603034?fr=aladdin](https://baike.baidu.com/item/图解密码技术/18603034?fr=aladdin))
+- [图解密码技术](https://baike.baidu.com/item/图解密码技术/18603034?fr=aladdin)
 - [iOS App 签名原理](http://blog.cnbang.net/tech/3386/)
 - [Apple Developer之Provisioning Profile(Certificate)](https://blog.csdn.net/kevindongkun/article/details/51033970)
 - [iOS Jailbreak](https://github.com/gaonian/HexoDocument/blob/master/iOS/iOSJailBreak.md)
