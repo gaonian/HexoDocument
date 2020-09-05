@@ -40,19 +40,28 @@ title : iOS 逆向
   - Cycript 内存分析调试
   - Reveal UI层级分析
   - ...
+  
 - 代码分析
   - class-dump导出头文件
   - Hopper 反汇编分析
   - ...
+  
 - 动态调试
   - LLDB断点调试分析
   - ...
+  
 - 编写代码
   - tweak编写
   - CaptainHook
   - ...
 
-- 重签名app，打包安装
+- 重签名
+
+  - 重签动态库
+  - 重签app
+  - 安装非越狱手机
+
+  
 
 #  SSH
 
@@ -203,7 +212,7 @@ Cycript 是一个允许开发者使用Objective-C++ 和 JavaScript 组合语法�
 
 ## Clutch
 
-https://github.com/KJCracks/Clutch/releases ，下载最新release版本，建议去掉版本号，将`Clutch` 文件拷贝到iPhone的`/usr/bin` 目录下，赋予执行权限并使用
+[下载最新release版本](https://github.com/KJCracks/Clutch/releases)，建议去掉版本号，将`Clutch` 文件拷贝到iPhone的`/usr/bin` 目录下，赋予执行权限并使用
 
 - `Clutch -i` 列出设备上安装的app和bundle id
 
@@ -229,7 +238,7 @@ iPhone:~ root#
 
 ## dumpdecrypted
 
-- https://github.com/stefanesser/dumpdecrypted ，下载源代码，然后切换到目录下，执行`make` 进行编译，编译完成会生成一个`dumpdecrypted.dylib` 动态库文件
+-  [下载源代码](https://github.com/stefanesser/dumpdecrypted)，然后切换到目录下，执行`make` 进行编译，编译完成会生成一个`dumpdecrypted.dylib` 动态库文件
 
 ![dumpdecrypted](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_5.png)
 
@@ -241,9 +250,11 @@ iPhone:~ root#
 
 ![dumpdecrypted](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_6.png)
 
+
+
 # class-dump
 
-class-dump是一个用于从可执行文件中获取类，方法和属性信息的工具，下载地址（https://github.com/nygard/class-dump），下载后把class-dump二进制文件拷贝到`/usr/local/bin` 目录下，可供全局访问。class-dump通过解析mach-o文件，来得到类的信息，具体实现过程可以进一步阅读源码。
+[class-dump](https://github.com/nygard/class-dump)是一个用于从可执行文件中获取类，方法和属性信息的工具，下载后把class-dump二进制文件拷贝到`/usr/local/bin` 目录下，可供全局访问。class-dump通过解析mach-o文件，来得到类的信息，具体实现过程可以进一步阅读源码。
 
 ```
 class-dump -H 可执行文件 -o 生成头文件存放目录
@@ -263,9 +274,11 @@ class-dump -H 可执行文件 -o 生成头文件存放目录
 
 ![headers](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_8.png)
 
+
+
 # Reveal
 
-Reveal是iOS上用于查看程序界面结构和调试界面的工具，和xcode中的UI调试有点像。官网地址（https://revealapp.com/）。Reveal可以在开发过程中动态调试修改程序的样式，也可以注入第三方查看应用的界面结构。
+Reveal是iOS上用于查看程序界面结构和调试界面的工具，和xcode中的UI调试有点像。[官网地址](https://revealapp.com/)。Reveal可以在开发过程中动态调试修改程序的样式，也可以注入第三方查看应用的界面结构。
 
 - mac安装Reveal
 
@@ -294,6 +307,8 @@ Reveal是iOS上用于查看程序界面结构和调试界面的工具，和xcode
 Hopper 是一款反汇编工具，提供Mac和Linux版本。Hopper可以显示被分析文件的反汇编代码、流程图及伪代码，也可以直接修改汇编指令，生成新的可执行文件
 
 ![Hopper](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_14.png)
+
+
 
 # 动态调试
 
@@ -431,6 +446,8 @@ cd restore-symbol && make
 ```
 
 把新生成的mach-o覆盖之前的，重新启动，测试即可。
+
+
 
 # Theos
 
@@ -688,7 +705,7 @@ Theos 提供了很多模块来创建不同类型的项目。我们在这里选�
 
 
 
-1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，初步思考，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
+1. 打开app，打开mac上的Reveal UI工具，查看层级，经过层层分析，我们发现这个广告view是 `DYPendantContainarView` ，意外收获是三个小广告全在一个view上，是不是只要把这个view干掉就可以了。接下来我们就要通过头文件找到这个类看一下具体的代码
 
    ![Reveal](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_18.png)
 
@@ -875,7 +892,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
 1. theos的tweak并不会对可执行文件进行修改，只是在内存中修改逻辑
 
-2. 只有在越狱机器中才有权限在启动时插入动态库，在[dyld源码](https://opensource.apple.com/tarballs/dyld/)中可以看到这个逻辑）
+2. 只有在越狱机器中才有权限在启动时插入动态库，在[dyld源码](https://opensource.apple.com/tarballs/dyld/)中可以看到这个逻辑
 
 
 
@@ -893,11 +910,17 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
 首先我们来看一下`CertificateSigningRequest.certSigningRequest` `ios_development.cer`   `entitlements` `*.mobileprovision` 这几个文件都代表着什么
 
-- `CertificateSigningRequest.certSigningRequest`  申请者的公钥信息（相当于mac公钥），包含了申请时填写的邮箱，name信息等。同时生成的还有私钥，公钥和私钥是一一对应的
+- `CertificateSigningRequest.certSigningRequest`  
 
-- `ios_development.cer` 通过mac公钥，添加账号信息，再通过哈希算法生成一个信息摘要，最后再通过苹果的私钥进行加密，生成一个cer证书。cer证书里面包括了 `mac公钥`和`苹果私钥加密的数字签名` 
+  在mac电脑钥匙串中从证书颁发机构请求证书，输入个人信息生成了`CertificateSigningRequest.certSigningRequest`文件，保存在磁盘。
 
-  苹果的私钥存在于苹果后台，公钥存在于每一台iphone，用于解密验证
+  这一步操作执行完成之后就会在钥匙串中新增一对非对称密钥对，名字就是刚申请时填写的常用名称。CSR文件内包含了公钥和身份信息。后续提供给苹果后台生成证书使用
+
+- 在苹果后台生成`.cer`证书
+
+  根据开发环境和正式环境分别上传CSR文件，然后苹果后台生成对应的证书（ios_development.cer / ios_distribution.cer）。下载双击安装之后就会存在于钥匙串我的证书中，展开之后可以看到对应证书的私钥。
+
+  这一步是利用苹果的私钥对mac设备的公钥信息进行签名，生成的证书文件。确保证书的合法性
 
 - `entitlements` 授权文件，其中列出了app哪些行为会被允许，哪些行为会被拒绝。在Xcode中的Capabilities进行设置后，相关条目会添加到授权文件中。
 
@@ -1035,7 +1058,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
 
    可以看到动态库依赖路径已经修改成功了。
 
-6. 接下来就是要重签名动态库了。 .app包内的所有动态库、扩展、watch都需要重签名
+6. 接下来就是要重签名动态库了。 .app包内的所有动态库、扩展、framework等都需要重签名
 
    - 查看当前电脑可以用的证书，我们选择第一个，用前面一串id就行
 
@@ -1102,7 +1125,7 @@ static __attribute__((constructor)) void _logosLocalInit() {
    
      
    
-8. 安装。创建Payload文件夹，拖入.app包，压缩Payload，压缩之后为zip，修改zip为ipa。通过`iFunBox`或者其他第三方工具安装到手机。安装成功，大功告成
+8. 安装。创建Payload文件夹，拖入.app包，压缩Payload，压缩之后为zip，修改zip为ipa。通过`iFunBox`或者其他第三方工具安装到手机。
 
    ![ipa](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_26.png)
 
@@ -1133,14 +1156,7 @@ MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%
 
   ![set](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_30.png)
 
-- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里，一个字，强的一笔！
+- 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里。平时开发中使用monkeydev，效率会极大提升
 
   ![debug](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_31.png)
 
-
-
-
-
-
-
-（完）
