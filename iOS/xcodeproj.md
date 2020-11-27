@@ -1,3 +1,39 @@
+# Xcodeproj
+
+[Xcodeproj](https://github.com/CocoaPods/Xcodeproj) 通过Ruby创建和修改Xcode项目结构。同样支持对 Xcode workspaces（.xcworkspace）、配置文件（.xcconfig）和 Xcode Scheme文件（.xcscheme）的修改
+
+[API Reference](https://www.rubydoc.info/gems/xcodeproj)
+
+
+
+## 安装
+
+```
+sudo gem install xcodeproj
+```
+
+
+
+## 使用
+
+
+
+
+
+# 参考资料
+
+- [Xcodeproj](https://github.com/CocoaPods/Xcodeproj)
+- [API Reference](https://www.rubydoc.info/gems/xcodeproj)
+- [Xcode Project File Format](http://www.monobjc.net/xcode-project-file-format.html)
+- [ruby库xcodeproj使用心得](https://www.jianshu.com/p/cca701e1d87c)
+
+- [XcodeProject的内部结构分析](https://www.jianshu.com/p/50cc564b58ce)
+- [使用代码为 Xcode 工程添加文件](https://draveness.me/bei-xcodeproj-keng-de-zhe-ji-tian/)
+
+
+
+
+
 - project.rb
 
   
@@ -210,12 +246,4 @@ lib/xcodeproj/project/object.rb
 - Cocoapods-Plugins
 
   插件管理
-
-
-
-
-
-```
-
-```
 
