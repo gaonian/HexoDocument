@@ -792,19 +792,19 @@ TCP是面向连接的协议，所以每次发出的请求都需要对方进行�
 
 ##### 第一次挥手
 
-客户端向服务端发送断开TCP连接请求的 FIN 报文，在报文中随机生成一个序列号 seq=u，表示要断开TCP连接，此时客户端进入FIN-WAIT-1的状态下
+客户端向服务端发送断开TCP连接请求的 FIN 报文，序列号 seq=u，表示要断开TCP连接，此时客户端进入FIN-WAIT-1的状态下
 
 （FIN=1，seq=u）
 
 ##### 第二次挥手
 
-当服务端收到客户端发来的断开TCP连接请求后，回复发送ACK报文，表示已经收到断开请求。回复时，随机生成一个序列号 seq=v。由于回复的是客户端发来的请求，所以在客户端请求序号seq=u的情况下加1，得到ack=u+1
+当服务端收到客户端发来的断开TCP连接请求后，回复发送ACK报文，表示已经收到断开请求。回复时，序列号 seq=v。由于回复的是客户端发来的请求，所以在客户端请求序号seq=u的情况下加1，得到ack=u+1
 
 （ACK=1，seq=v，ack=u+1）
 
 ##### 第三次挥手
 
-服务端在回复完客户端的TCP断开请求后，不会马上进行TCP连接的断开。服务端会先确认断开前，所有传输到客户端的数据是否已经传输完毕。确认传输完毕后才进行断开，向客户端发送 FIN=1，ACK=1，再次随机生成一个序列号seq=w。由于还是对客户端发来的TCP断开请求回复，所以ack还是ack=u+1
+服务端在回复完客户端的TCP断开请求后，不会马上进行TCP连接的断开。服务端会先确认断开前，所有传输到客户端的数据是否已经传输完毕。确认传输完毕后才进行断开，向客户端发送 FIN=1，ACK=1，序列号seq=w。由于还是对客户端发来的TCP断开请求回复，所以ack还是ack=u+1
 
 （FIN=1，ACK=1，seq=w，ack=u+1）
 
@@ -823,10 +823,34 @@ TCP是面向连接的协议，所以每次发出的请求都需要对方进行�
   MSL是TCP报文在Internet上的最长生存时间
 
   每个具体的TCP实现都必须选择一个确定的MSL值，RFC建议是2分钟
+  
+  为了防止本次连接中产生的数据包误传到下一次连接中（因为本次连接中的数据包都会在2MSL时间内消失了）
+  
+  
+  
+- 为什么要等待2MSL?
+
+  **为的是确认服务器端是否收到客户端发出的ACK确认报文**
+
+  > 当客户端发出最后的ACK确认报文时，并不能确定服务器端能够收到该段报文。所以客户端在发送完ACK确认报文之后，会设置一个时长为2MSL的计时器。MSL指的是Maximum Segment Lifetime：一段TCP报文在传输过程中的最大生命周期。2MSL即是服务器端发出为FIN报文和客户端发出的ACK确认报文所能保持有效的最大时长。
+
+  > 服务器端在1MSL内没有收到客户端发出的ACK确认报文，就会再次向客户端发出FIN报文；
+  >
+  > - 如果客户端在2MSL内，再次收到了来自服务器端的FIN报文，说明服务器端由于各种原因没有接收到客户端发出的ACK确认报文。客户端再次向服务器端发出ACK确认报文，计时器重置，重新开始2MSL的计时；
+  > - 否则客户端在2MSL内没有再次收到来自服务器端的FIN报文，说明服务器端正常接收了ACK确认报文，客户端可以进入CLOSED阶段，完成“四次挥手”。
+
+  **所以，客户端要经历时长为2SML的TIME-WAIT阶段；这也是为什么客户端比服务器端晚进入CLOSED阶段的原因**
 
 
 
 - 为什么释放连接的时候，要进行四次挥手？
+
+  > TCP释放连接时之所以需要“四次挥手”,是因为**FIN释放连接报文与ACK确认接收报文是分别由第二次和第三次"挥手"传输的**。为何建立连接时一起传输，释放连接时却要分开传输？
+>
+  > - 建立连接时，被动方服务器端结束CLOSED阶段进入“握手”阶段并不需要任何准备，可以直接返回SYN和ACK报文，开始建立连接。
+  > - 释放连接时，被动方服务器，突然收到主动方客户端释放连接的请求时并不能立即释放连接，因为还有必要的数据需要处理，所以服务器先返回ACK确认收到报文，经过CLOSE-WAIT阶段准备好释放连接之后，才能返回FIN释放连接报文。
+
+  
 
   TCP是全双工模式
 
@@ -907,5 +931,256 @@ UDP尽最大能力交付，不保证可靠交付
 
 # 5. 应用层（Application）
 
+应用层常见协议：
 
+- 超文本传输
+
+  HTTP、HTTPS
+
+- 文件传输
+
+  FTP
+
+- 电子邮件
+
+  SMTP、POP3、IMAP
+
+- 动态主机配置
+
+  DHCP
+
+- 域名系统
+
+  DNS
+
+  
+
+## 域名（Domin Name）
+
+由于IP地址不方便记忆，并且不能表达组织的名称和性质，人们设计出了域名（比如baidu.com）
+
+但实际上，为了能够访问到具体的主机，最终还是得知道目标主机的IP地址。
+
+使用IP地址只占用4字节，可以减少路由器的负担，节省流量
+
+
+
+根据级别不同，域名可以分为
+
+- 顶级域名（Top-level Domain，简称TLD）
+- 二级域名
+- 三级域名
+- 。。。
+
+
+
+### 顶级域名
+
+- 通用顶级域名（General Top-level Domain，简称gTLD）
+
+  ```
+  .com（公司）
+  .net（网络机构）
+  .org（组织结构）   
+  .edu（教育）   
+  .gov（政府部门）   
+  .int（国际组织）
+  ```
+
+- 国家及地区顶级域名（Country Code Top-level Domain，简称ccTLD）
+
+  ```
+  .cn（中国）
+  .jp（日本）
+  .uk（英国）
+  ```
+
+- 新通用顶级域名（New Generic Top-level Domain，简称：New gTLD）
+
+  ```
+  .vip
+  .xyz
+  .top
+  .club
+  .shop
+  ```
+
+### 二级域名
+
+二级域名是指顶级域名之下的域名
+
+在通用顶级域名下，它一般指域名注册人的名称，例如google、baidu、microsoft等
+
+在国家及地区顶级域名下，它一般指注册类别的，例如com、edu、gov、net等
+
+![](./network_img/net_30.png)
+
+
+
+## DNS
+
+DNS的全程是：Domain Name System，译为：域名系统
+
+利用DNS协议，可以将域名（比如baidu.com）解析成对应的IP地址（比如220.181.38.148）
+
+DNS可以基于UDP协议，也可以基于TCP协议，服务器占用53端口
+
+<img src="./network_img/net_31.png" style="zoom:75%;" />
+
+客户端首先会访问最近的一台DNS服务器（也就是客户端自己配置的DNS服务器）
+
+所有的DNS服务器都记录了DNS根域名服务器的IP地址
+
+上级DNS服务器记录了下一级DNS服务器的IP地址
+
+全球一共13台IPv4的DNS根域名服务器、25台IPv6的DNS根域名服务器
+
+
+
+## DHCP
+
+DHCP（Dynamic Host Configuration Protocol），译为：动态主机配置协议
+
+DHCP协议基于UDP协议，客户端是68端口，服务器是67端口
+
+DHCP服务器会从IP地址池中，挑选一个IP地址出租给客户端一段时间，时间到期就回收他们
+
+平时家里上网的路由器就可以充当DHCP服务器
+
+<img src="./network_img/net_32.png" style="zoom:37%;" />
+
+![](./network_img/net_33.png)
+
+分配IP地址的4个阶段
+
+- DISCOVER：发现服务器
+
+  发广播包（源IP是0.0.0.0，目标IP是255.255.255.255，目标MAC地址是FF:FF:FF:FF:FF:FF）
+
+- OFFER：提供租约
+
+  服务器返回可以租用的IP地址，以及租用期限、子网掩码、网关、DNS等信息
+
+  注意：这里可能会有多个服务器提供租约
+
+- REQUEST：选择IP地址
+
+  客户端选择一个OFFER，发送广播包进行回应
+
+- ACKNOWLEDGE：确认
+
+  被选中的服务器发送ACK数据包给客户端
+
+  至此，IP地址分配完毕
+
+
+
+注意：
+
+- DHCP服务器可以跨网段分配IP地址吗？（DHCP服务器、客户端不在同一个网段）
+
+  可以借助DHCP中继代理（DHCP Relay Agent）实现跨网段分配IP地址
+
+- 自动续约
+
+  客户端会在租期不足的时候，自动向DHCP服务器发送REQUEST信息申请续约
+
+- 常用命令
+
+  - ipconfig /all 可以看到DHCP相关的详细信息，比如租约过期时间、DHCP服务器地址等
+  - ipconfig /release  释放租约
+  - ipconfig /renew   重新申请IP地址，申请续约（延长租期）
+
+
+
+## HTTP
+
+HTTP（Hyper Text Transfer Protocol）超文本传输协议
+
+- 互联网中应用最广泛的应用层协议之一
+- 设计最初目的是：提供一种发布和接收HTML页面的方法，由URI来标识具体的资源
+
+### 发展历史
+
+- 1991年，HTTP/0.9
+
+  只支持GET请求方法获取文本数据（比如HTML文档），且不支持请求头，响应头等，无法向服务器传递太多信息
+
+- 1996年，HTTP/1.0
+
+  支持POST HEAD等请求方法，支持请求头、响应头等，支持更多种数据类型（不再局限于文本数据）
+
+  浏览器的每次请求都需要与服务器建立一个TCP连接，请求处理完成后立即断开TCP连接
+
+- 1997年，HTTP/1.1 （最经典，使用最广泛的版本）
+
+  支持PUT  DELETE等请求方法
+
+  采用持久连接（Connection：keep-alive），多个请求可以共用同一个TCP连接
+
+- 2015年，HTTP/2.0
+
+- 2018年，HTTP/3.0
+
+### 报文格式
+
+![](./network_img/net_34.png)
+
+```
+GET / HTTP/1.1
+Host: localhost
+Connection: keep-alive
+Cache-Control: max-age=0
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+If-None-Match: "143-5b5f523376080"
+If-Modified-Since: Tue, 08 Dec 2020 14:55:46 GMT
+
+实体主体，若是POST，则此部分放参数（username=123&pwd=456）
+```
+
+
+
+![](./network_img/net_35.png)
+
+```
+HTTP/1.1 200 OK
+Date: Tue, 08 Dec 2020 15:01:40 GMT
+Server: Apache/2.4.41 (Unix)
+Last-Modified: Tue, 08 Dec 2020 14:55:46 GMT
+ETag: "143-5b5f523376080"
+Accept-Ranges: bytes
+Content-Length: 323
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+
+    <p>hello world!!!</p>
+
+    <button onclick="buttonClick()">button</button>
+    
+</body>
+
+<script>
+    function buttonClick() {
+        window.location.href = "https://www.baidu.com";
+    }
+</script>
+
+
+</html>
+```
 
