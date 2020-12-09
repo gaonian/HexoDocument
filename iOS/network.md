@@ -1093,6 +1093,58 @@ DHCP服务器会从IP地址池中，挑选一个IP地址出租给客户端一段
 
 
 
+## telnet
+
+可以直接面向HTTP报文与服务器交互
+
+可以更清晰直观的看到请求报文、响应报文的内容
+
+可以校验请求报文格式的正确与否
+
+```
+➜  ~ telnet localhost 80
+
+Trying ::1...
+Connected to localhost.
+Escape character is '^]'.
+GET /index.html HTTP/1.1
+Host: localhost:80
+
+HTTP/1.1 200 OK
+Date: Wed, 09 Dec 2020 14:05:32 GMT
+Server: Apache/2.4.41 (Unix)
+Last-Modified: Tue, 08 Dec 2020 14:55:46 GMT
+ETag: "143-5b5f523376080"
+Accept-Ranges: bytes
+Content-Length: 323
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+
+    <p>hello world!!!</p>
+
+    <button onclick="buttonClick()">button</button>
+    
+</body>
+
+<script>
+    function buttonClick() {
+        window.location.href = "https://www.baidu.com";
+    }
+</script>
+
+
+</html>Connection closed by foreign host.
+```
+
+
+
 ## HTTP
 
 HTTP（Hyper Text Transfer Protocol）超文本传输协议
@@ -1183,4 +1235,427 @@ Content-Type: text/html
 
 </html>
 ```
+
+### ABNF
+
+ABNF（Augmented BNF）是BNF 的修改增强版
+
+在[RFC 5234](https://tools.ietf.org/html/rfc5234) 中表明：ABNF用作internet中通信协议的定义语言
+
+ABNF是最严谨的HTTP报文格式描述形式，脱离ABNF谈论HTTP报文格式，往往都是片面 不严谨的
+
+[HTTP报文格式的定义](https://tools.ietf.org/html/rfc7230%23section-3)
+
+
+
+#### 1. 报文格式 - 整体
+
+``` 
+HTTP-message = start-line
+							 *(header-field CRLF)
+							 CRLF
+							 [ message-body ]
+```
+
+| /    | 任选一个                                     |
+| ---- | -------------------------------------------- |
+| *    | 0个或多个。 `2*表示至少2个`，`3*6表示3到6个` |
+| ()   | 组成一个整体                                 |
+| []   | 可选（可有可无）                             |
+
+- start-line
+
+  表示 request-line / status-line 中的任意一个
+
+- `*(header-field CRLF)`
+
+  表示首部行，可以没有，可以有多个，key：value形式表示，每一行结尾有回车换行
+
+- CRLF
+
+  表示回车换行
+
+- [ message-body ]
+
+  可选项。如果是post请求，请求参数放在此 （ username=123&pwd=456 ）
+
+  
+
+#### 2. request-line / status-line
+
+1. request-line:
+
+   ```
+   request-line = method SP request-target SP HTTP-version CRLF
+   ```
+
+   ```
+   HTTP-version = HTTP-name"/"DIGIT"."DIGIT
+   ```
+
+   ```
+   HTTP-name = %x48.54.54.50   ;HTTP
+   ```
+
+   对应的请求行为
+
+   ```
+   GET /hello/ HTTP/1.1
+   ```
+
+2. status-line:
+
+   ```
+   status-line = HTTP-version SP status-code SP reason-phrase CRLF
+   ```
+
+   ```
+   status-code = 3DIGIT    ;表示3位数字
+   ```
+
+   ```
+   reason-phrase = *(HTAB / SP / VCHAR / obs-text)
+   ```
+
+   代表的响应行为
+
+   ```
+   HTTP/1.1 200 
+   HTTP/1.1 200 OK
+   ```
+
+#### 3. header-field
+
+1. header-field:
+
+   ```
+   header-field = field-name":" OWS field-value OWS
+   ```
+
+   ```
+   field-name = token
+   ```
+
+   ```
+   field-value = *(field-content / obs-fold)
+   ```
+
+   OWS表示 `*(SP / HTAB)`，可以为空格或者tab键
+
+#### 4. message-body
+
+​	`message-body = *OCTET`
+
+
+
+### 请求方法
+
+[Request methods](https://tools.ietf.org/html/rfc7231%23section-4) 中描述了8中请求方法
+
+```
+GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
+```
+
+[Patch method](https://tools.ietf.org/html/rfc5789%23section-2) 中描述了PATCH方法
+
+- GET
+
+  常用于读取的操作，请求参数直接拼接在URL的后面（浏览器对URL是有长度限制的）
+
+- HEAD
+
+  请求得到与GET请求相同的响应，但是没有响应体
+
+  在下载一个大文件前，可以先获取其大小，再决定是否要下载。以此节约带宽资源
+
+- POST
+
+  常用于添加、修改、删除的操作，请求参数可以放到请求体中（没有大小限制）
+
+- PUT
+
+  用于对已存在的资源进行整体覆盖
+
+- DELETE
+
+  用于删除指定的资源
+
+- CONNECT
+
+  可以开启一个客户端与所请求资源之间的双向沟通的通道，它可以用来创建隧道（tunnel）
+
+  可以用来访问采用了SSL（HTTPS）协议的站点
+
+- OPTIONS
+
+  用于获取目的资源所支持的通信选项，比如服务器支持的请求方式
+
+  ```
+  OPTIONS * HTTP/1.1
+  ```
+
+- TRACE
+
+  请求服务器回显其收到的请求信息，主要用于HTTP请求的测试或诊断
+
+- PATCH
+
+  用于对资源进行部分修改（资源不存在，会创建新的资源）
+
+
+
+### 头部字段（Header Field）
+
+#### 请求头字段（Request Header Field）
+
+- User-Agent
+
+  浏览器的身份标识字符串
+
+  ```
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36
+  ```
+
+- Host
+
+  服务器的域名、端口号
+
+  ```
+  Host: www.baidu.com
+  ```
+
+- Date
+
+  发送该消息的日期和时间
+
+  ```
+  Date: Wed, 09 Dec 2020 14:30:01 GMT
+  ```
+
+- Referer
+
+  标识浏览器所访问的前一个页面，正是那个页面上的某个链接将浏览器带到了当前所请求的这个页面
+
+  假设在我们本地的页面上点击一个按钮跳转到百度，此时在请求百度页面就会看到Referer字段
+
+  ```
+  Referer: http://localhost/
+  ```
+
+- Content-Type
+
+  请求体的类型
+
+  ```
+  Content-Type: multipart/form-data
+  ```
+
+- Content-Length
+
+  请求体的长度（字节为单位）
+
+  ```
+  Content-Length: 348
+  ```
+
+- Accept
+
+  能够接受的响应内容类型（Content-Types）
+
+  ```
+  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+  ```
+
+  `;q=0.9` 代表权重
+
+- Accept-Charset
+
+  能够接受的字符集
+
+  ```
+  Accept-Charset: utf-8
+  ```
+
+- Accept-Encoding
+
+  能够接受的编码方式列表
+
+  ```
+  Accept-Encoding: gzip, deflate, br
+  ```
+
+- Accept-Language
+
+  能够接受的响应内容的自然语言列表
+
+  ```
+  Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+  ```
+
+- Range
+
+  仅请求某个实体的一部分。字节偏移以0开始
+
+  ```
+  Range: bytes=500-999
+  ```
+
+- Origin
+
+  发起一个针对跨域资源共享的请求
+
+  ```
+  Origin: https://www.baidu.com
+  ```
+
+- Cookie
+
+  之前由服务器通过Set-Cookie发送的Cookie
+
+  ```
+  Cookie: BIDUPSID=43F64A06F72D2A56E7FC0274274187DB; PSTM=1579496966; BAIDUID=43F64A06F72D2A563CBBDB95ADFABBD4:FG=1; BD_UPN=123253; BDUSS=ZzUU5iRzFoM1BPYlNsRmJ5Y1BLQ1V6MGtWOVdxUjJJU0tPbzFYdE9iVFBHdHBmRVFBQUFBJCQAAAAAAAAAAAEAAABNevwq0~u4x8PW1cMxOTk5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM-Nsl~PjbJfWH; BDUSS_BFESS=ZzUU5iRzFoM1BPYlNsRmJ5Y1BLQ1V6MGtWOVdxUjJJU0tPbzFYdE9iVFBHdHBmRVFBQUFBJCQAAAAAAAAAAAEAAABNevwq0~u4x8PW1cMxOTk5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM-Nsl~PjbJfWH; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; BD_HOME=1; BAIDUID_BFESS=43F64A06F72D2A563CBBDB95ADFABBD4:FG=1; delPer=0; BD_CK_SAM=1; PSINO=2; COOKIE_SESSION=570100_1_3_2_10_3_0_0_2_2_0_0_570103_0_8_0_1607490444_1606400068_1607490436%7C9%231934546_14_1606400043%7C9; H_PS_645EC=3e66sciIzhmJrF%2BvUjOrraOokAagXdktSeWofxdAFLmSdTaFtz%2FOuAPcjds; shifen[6934706_87787]=1607523818; BCLID=9742301369183280527; BDSFRCVID=4jPOJexroG3oCojrFQE9hFsjYdNbUdrTDYLEmQHHJkBXE_kVJeC6EG0Pts1-dEu-EHtdogKK0gOTH6KF_2uxOjjg8UtVJeC6EG0Ptf8g0M5; H_BDCLCKID_SF=tR3j3Ru8KJjEe-Kk-PnVeT0q0-nZKRvHa2keWhOO2toPVqKwMMj5MlFOXx5PKnjn3N5rKR6lWpnkjpoyQqnO3xI8LNj405OTbTADsRbNb66pO-bghPJvyT8sXnO7tfnlXbrtXp7_2J0WStbKy4oTjxL1Db3JKjvMtgDtVJO-KKCKhKKxDxK; H_PS_PSSID=33213_1460_33225_33119_33060_33113_33098_33101_33183_33181_32845_33199_33237_33217_33216_33215_33185; sug=3; sugstore=0; ORIGIN=2; bdime=0; BA_HECTOR=a100812lah0hal2kqn1ft1nqs0r
+  ```
+
+- Connection
+
+  该浏览器想要优先使用的连接类型
+
+  ```
+  Connection: keep-alive
+  ```
+
+- Cache-Control
+
+  用来指定在这次的请求、响应链中的所有缓存机制都必须遵守的指令
+
+  ```
+  Cache-Control: max-age=0
+  ```
+
+  
+
+#### 响应头字段（Response Header Field）
+
+- Date
+
+  发送该消息的日期和时间
+
+  ```
+  Date: Wed, 09 Dec 2020 14:30:01 GMT
+  ```
+
+- Last-Modified
+
+  所请求的对象的最后修改日期
+
+  ```
+  Last-Modified: Wed, 09 Dec 2020 14:30:01 GMT
+  ```
+
+- Server
+
+  服务器的名字
+
+  ```
+  Server: BWS/1.1
+  Server: Apache/2.4.1 (Unix)
+  ```
+
+- Expires
+
+  指定一个时间，超过该时间则认为此响应以及过期
+
+  ```
+  Expires: Wed, 09 Dec 2020 14:30:01 GMT
+  ```
+
+- Content-Type
+
+  响应体的类型
+
+  ```
+  Content-Type: text/html;charset=utf-8
+  ```
+
+- Content-Encoding
+
+  内容所使用的编码类型
+
+  ```
+  Content-Encoding: gzip
+  ```
+
+- Content-Length
+
+  响应体的长度（字节为单位）
+
+  ```
+  Content-Length: 348
+  ```
+
+- Content-Disposition
+
+  一个可以让客户端下载文件并建议文件名的头部
+
+  ```
+  Content-Disposition: attachment; filename="fname.ext"
+  ```
+
+- Accept-Ranges
+
+  服务器支持哪些种类的部分内容范围
+
+  ```
+  Accept-Ranges: bytes
+  ```
+
+- Content-Range
+
+  这条部分消息是属于完整消息的哪部分
+
+  ```
+  Content-Range: bytes 21010-47021/47022
+  ```
+
+- Access-Control-Allow-Origin
+
+  指定哪些网站可参与到跨来源资源共享过程中
+
+  ```
+  Access-Control-Allow-Origin: *
+  ```
+
+- Location
+
+  用来进行重定向，或者在创建了某个新资源时使用
+
+  ```
+  Location: http://www.w3.org
+  ```
+
+- Set-Cookie
+
+  返回一个Cookie让客户端去保存
+
+  ```
+  Set-Cookie: H_PS_PSSID=33213_1460_33225_33119_33060_33113_33098_33101_33183_33181_32845_33199_33237_33217_33216_33215_33185; path=/; domain=.baidu.com
+  ```
+
+- Connection
+
+  针对该连接所预期的选项
+
+  ```
+  Connection: keep-alive
+  ```
+
+- Cache-Control
+
+  向从服务器直到客户端在内的所有缓存机制告知，它们是否可以缓存这个对象。单位为秒
+
+  ```
+  Cache-Control: max-age=3600
+  ```
+
+  
 
