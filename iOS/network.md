@@ -1404,24 +1404,26 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 
 
-### 头部字段（Header Field）
+### HTTP首部字段
 
-#### 请求头字段（Request Header Field）
+#### 通用首部字段（General Header Fields）
 
-- User-Agent
+请求报文和响应报文两方都会使用的首部
 
-  浏览器的身份标识字符串
+- Cache-Control
 
-  ```
-  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36
-  ```
-
-- Host
-
-  服务器的域名、端口号
+  控制缓存的行为。用来指定在这次的请求、响应链中的所有缓存机制都必须遵守的指令
 
   ```
-  Host: www.baidu.com
+  Cache-Control: max-age=0
+  ```
+
+- Connection
+
+  该浏览器想要优先使用的连接类型
+
+  ```
+  Connection: keep-alive
   ```
 
 - Date
@@ -1432,31 +1434,35 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Date: Wed, 09 Dec 2020 14:30:01 GMT
   ```
 
-- Referer
+- Pragma
 
-  标识浏览器所访问的前一个页面，正是那个页面上的某个链接将浏览器带到了当前所请求的这个页面
+  报文指令
 
-  假设在我们本地的页面上点击一个按钮跳转到百度，此时在请求百度页面就会看到Referer字段
+- Trailer
 
-  ```
-  Referer: http://localhost/
-  ```
+  报文末端的首部一览
 
-- Content-Type
+- Transfer-Encoding
 
-  请求体的类型
+  指定报文主体的传输编码方式
 
-  ```
-  Content-Type: multipart/form-data
-  ```
+- Upgrade
 
-- Content-Length
+  升级为其他协议
 
-  请求体的长度（字节为单位）
+- Via
 
-  ```
-  Content-Length: 348
-  ```
+  代理服务器的相关信息
+
+- Warning
+
+  错误通知
+
+
+
+#### 请求首部字段（Request Header Fields）
+
+从客户端向服务端发送请求报文时使用的首部。补充了请求的附加内容、客户端信息、响应内容相关优先级等信息
 
 - Accept
 
@@ -1466,7 +1472,32 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
   ```
 
-  `;q=0.9` 代表权重
+  `;q=0.9` 代表权重值，用；进行分割。权重值q的范围为0-1（可精确到小数点后3位），且1为最大值。不指定权重q值时，默认为q=1.0
+
+  - 文本文件
+
+    ```
+    text/html, text/plain, text/css ... 
+    application/xhtml+xml, application/xml ...
+    ```
+
+  - 图片文件
+
+    ```
+    image/jpeg, image/gif, image/png ...
+    ```
+
+  - 视频文件
+
+    ```
+    video/mpeg, video/quicktime ...
+    ```
+
+  - 应用程序使用的二进制文件
+
+    ```
+    application/octet-stream, application/zip ...
+    ```
 
 - Accept-Charset
 
@@ -1484,12 +1515,72 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept-Encoding: gzip, deflate, br
   ```
 
+  - gzip
+
+    由文件压缩程序 gzip(GNU zip)生成的编码格式 (RFC1952)，采用 Lempel-Ziv 算法(LZ77)及 32 位循环冗余 校验(Cyclic Redundancy Check，通称 CRC)。
+
+  - compress
+
+    由 UNIX 文件压缩程序 compress 生成的编码格式，采用 Lempel- Ziv-Welch 算法(LZW)。
+
+  - deflate
+
+    组合使用 zlib 格式(RFC1950)及由 deflate 压缩算法 (RFC1951)生成的编码格式。
+
+  - identity
+
+    不执行压缩或不会变化的默认编码格式
+
+  采用权重 q 值来表示相对优先级，这点与首部字段 Accept 相同。另外，也可使用星号(*)作为通配符，指定任意的编码格式。
+
 - Accept-Language
 
   能够接受的响应内容的自然语言列表
 
   ```
   Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+  ```
+
+- Authorization
+
+  web认证信息。用来告知服务器，用户代理的认证信息(证 书值)。通常，想要通过服务器认证的用户代理会在接收到返回的 401 状态码响应后，把首部字段 Authorization 加入请求中
+
+  ```
+  Authorization: Basic dWVub3NlbjpwYXNzd29yZA==
+  ```
+
+- Expect
+
+  期待服务器的特定行为
+
+- From
+
+  用户的电子邮箱地址
+
+- Host
+
+  服务器的域名、端口号
+
+  ```
+  Host: www.baidu.com
+  ```
+
+- User-Agent
+
+  浏览器的身份标识字符串
+
+  ```
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36
+  ```
+
+- Referer
+
+  标识浏览器所访问的前一个页面，正是那个页面上的某个链接将浏览器带到了当前所请求的这个页面
+
+  假设在我们本地的页面上点击一个按钮跳转到百度，此时在请求百度页面就会看到Referer字段
+
+  ```
+  Referer: http://localhost/
   ```
 
 - Range
@@ -1513,43 +1604,41 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   之前由服务器通过Set-Cookie发送的Cookie
 
   ```
-  Cookie: BIDUPSID=43F64A06F72D2A56E7FC0274274187DB; PSTM=1579496966; BAIDUID=43F64A06F72D2A563CBBDB95ADFABBD4:FG=1; BD_UPN=123253; BDUSS=ZzUU5iRzFoM1BPYlNsRmJ5Y1BLQ1V6MGtWOVdxUjJJU0tPbzFYdE9iVFBHdHBmRVFBQUFBJCQAAAAAAAAAAAEAAABNevwq0~u4x8PW1cMxOTk5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM-Nsl~PjbJfWH; BDUSS_BFESS=ZzUU5iRzFoM1BPYlNsRmJ5Y1BLQ1V6MGtWOVdxUjJJU0tPbzFYdE9iVFBHdHBmRVFBQUFBJCQAAAAAAAAAAAEAAABNevwq0~u4x8PW1cMxOTk5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM-Nsl~PjbJfWH; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; BD_HOME=1; BAIDUID_BFESS=43F64A06F72D2A563CBBDB95ADFABBD4:FG=1; delPer=0; BD_CK_SAM=1; PSINO=2; COOKIE_SESSION=570100_1_3_2_10_3_0_0_2_2_0_0_570103_0_8_0_1607490444_1606400068_1607490436%7C9%231934546_14_1606400043%7C9; H_PS_645EC=3e66sciIzhmJrF%2BvUjOrraOokAagXdktSeWofxdAFLmSdTaFtz%2FOuAPcjds; shifen[6934706_87787]=1607523818; BCLID=9742301369183280527; BDSFRCVID=4jPOJexroG3oCojrFQE9hFsjYdNbUdrTDYLEmQHHJkBXE_kVJeC6EG0Pts1-dEu-EHtdogKK0gOTH6KF_2uxOjjg8UtVJeC6EG0Ptf8g0M5; H_BDCLCKID_SF=tR3j3Ru8KJjEe-Kk-PnVeT0q0-nZKRvHa2keWhOO2toPVqKwMMj5MlFOXx5PKnjn3N5rKR6lWpnkjpoyQqnO3xI8LNj405OTbTADsRbNb66pO-bghPJvyT8sXnO7tfnlXbrtXp7_2J0WStbKy4oTjxL1Db3JKjvMtgDtVJO-KKCKhKKxDxK; H_PS_PSSID=33213_1460_33225_33119_33060_33113_33098_33101_33183_33181_32845_33199_33237_33217_33216_33215_33185; sug=3; sugstore=0; ORIGIN=2; bdime=0; BA_HECTOR=a100812lah0hal2kqn1ft1nqs0r
-  ```
-
-- Connection
-
-  该浏览器想要优先使用的连接类型
-
-  ```
-  Connection: keep-alive
-  ```
-
-- Cache-Control
-
-  用来指定在这次的请求、响应链中的所有缓存机制都必须遵守的指令
-
-  ```
-  Cache-Control: max-age=0
+  Cookie: BIDUPSID=43F64A06F72D2A56E7FC0274274187DB;
   ```
 
   
 
-#### 响应头字段（Response Header Field）
+#### 响应首部字段（Response Header Fields）
 
-- Date
+从服务端向客户端返回响应报文时使用的首部。补充了响应的附加内容，也会要求客户端附加额外的内容信息
 
-  发送该消息的日期和时间
+- Accept-Ranges
 
-  ```
-  Date: Wed, 09 Dec 2020 14:30:01 GMT
-  ```
+  首部字段 Accept-Ranges 是用来告知客户端服务器是否能处理范围请 求，以指定获取服务器端某个部分的资源。
 
-- Last-Modified
-
-  所请求的对象的最后修改日期
+  可指定的字段值有两种，可处理范围请求时指定其为 bytes，反之则 指定其为 none。
 
   ```
-  Last-Modified: Wed, 09 Dec 2020 14:30:01 GMT
+  Accept-Ranges: bytes
+  ```
+
+- Location
+
+  用来进行重定向，或者在创建了某个新资源时使用
+
+  ```
+  Location: http://www.w3.org
+  ```
+
+- Proxy-Authenticate
+
+  代理服务器对客户端的认证信息。首部字段 Proxy-Authenticate 会把由代理服务器所要求的认证信息发送 给客户端。
+
+  它与客户端和服务器之间的 HTTP 访问认证的行为相似，不同之处在 于其认证行为是在客户端与代理之间进行的。而客户端与服务器之间 进行认证时，首部字段 WWW-Authorization 有着相同的作用
+
+  ```
+  Proxy-Authenticate: Basic realm="Usagidesign Auth"
   ```
 
 - Server
@@ -1559,6 +1648,65 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   ```
   Server: BWS/1.1
   Server: Apache/2.4.1 (Unix)
+  ```
+
+- Vary
+
+  代理服务器缓存的管理信息
+
+- WWW-Authenticate
+
+  服务器对客户端的认证信息
+
+  ```
+  WWW-Authenticate: Basic realm="Usagidesign Auth"
+  ```
+
+- Access-Control-Allow-Origin
+
+  指定哪些网站可参与到跨来源资源共享过程中
+
+  ```
+  Access-Control-Allow-Origin: *
+  ```
+
+- Set-Cookie
+
+  返回一个Cookie让客户端去保存。当服务器准备开始管理客户端状态时，会事先告知各种信息
+
+  ```
+  Set-Cookie: H_PS_PSSID=33213_1460_33225_33119_33060_33113_33098_33101_33183_33181_32845_33199_33237_33217_33216_33215_33185; path=/; domain=.baidu.com
+  ```
+
+  | 属性         | 说明                                                         |
+  | ------------ | ------------------------------------------------------------ |
+  | NAME=VALUE   | 赋予Cookie的名称和值                                         |
+  | expires=DATE | Cookie的有效期（若不明确指定则默认为浏览器关闭前为止）       |
+  | path=PATH    | 将服务器上的文件目录作为Cookie的适用对象（若不指定则默认为文档所在的文件目录） |
+  | domain=域名  | 作为Cookie适用对象的域名（若不指定默认为创建Cookie的服务器的域名） |
+  | Secure       | 仅在HTTPS安全通信前才会发送Cookie                            |
+  | HttpOnly     | 加以限制，使Cookie不能被JavaScript脚本访问                   |
+
+
+
+#### 实体首部字段（Entity Header Fields）
+
+针对请求报文和响应报文的实体部分使用的首部。补充了资源内容更新时间等与实体有关的信息
+
+- Allow
+
+  资源可支持的HTTP方法
+
+  ```
+  Allow: GET, HEAD
+  ```
+
+- Last-Modified
+
+  所请求的对象的最后修改日期
+
+  ```
+  Last-Modified: Wed, 09 Dec 2020 14:30:01 GMT
   ```
 
 - Expires
@@ -1601,14 +1749,6 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Content-Disposition: attachment; filename="fname.ext"
   ```
 
-- Accept-Ranges
-
-  服务器支持哪些种类的部分内容范围
-
-  ```
-  Accept-Ranges: bytes
-  ```
-
 - Content-Range
 
   这条部分消息是属于完整消息的哪部分
@@ -1617,45 +1757,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Content-Range: bytes 21010-47021/47022
   ```
 
-- Access-Control-Allow-Origin
 
-  指定哪些网站可参与到跨来源资源共享过程中
 
-  ```
-  Access-Control-Allow-Origin: *
-  ```
-
-- Location
-
-  用来进行重定向，或者在创建了某个新资源时使用
-
-  ```
-  Location: http://www.w3.org
-  ```
-
-- Set-Cookie
-
-  返回一个Cookie让客户端去保存
-
-  ```
-  Set-Cookie: H_PS_PSSID=33213_1460_33225_33119_33060_33113_33098_33101_33183_33181_32845_33199_33237_33217_33216_33215_33185; path=/; domain=.baidu.com
-  ```
-
-- Connection
-
-  针对该连接所预期的选项
-
-  ```
-  Connection: keep-alive
-  ```
-
-- Cache-Control
-
-  向从服务器直到客户端在内的所有缓存机制告知，它们是否可以缓存这个对象。单位为秒
-
-  ```
-  Cache-Control: max-age=3600
-  ```
-
-  
+### HTTP状态码
 
