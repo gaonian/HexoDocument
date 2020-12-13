@@ -1263,7 +1263,7 @@ HTTP-message = start-line
 | ()   | 组成一个整体                                 |
 | []   | 可选（可有可无）                             |
 
-- start-line
+- **start-line**
 
   表示 request-line / status-line 中的任意一个
 
@@ -1271,11 +1271,11 @@ HTTP-message = start-line
 
   表示首部行，可以没有，可以有多个，key：value形式表示，每一行结尾有回车换行
 
-- CRLF
+- **CRLF**
 
   表示回车换行
 
-- [ message-body ]
+- **[ message-body ]**
 
   可选项。如果是post请求，请求参数放在此 （ username=123&pwd=456 ）
 
@@ -1283,37 +1283,29 @@ HTTP-message = start-line
 
 #### 2. request-line / status-line
 
-1. request-line:
+1. **request-line:**
 
    ```
    request-line = method SP request-target SP HTTP-version CRLF
-   ```
-
-   ```
+   
    HTTP-version = HTTP-name"/"DIGIT"."DIGIT
-   ```
-
-   ```
+   
    HTTP-name = %x48.54.54.50   ;HTTP
    ```
-
-   对应的请求行为
-
+   
+   对应的请求行为   
+   
    ```
    GET /hello/ HTTP/1.1
    ```
-
-2. status-line:
+   
+2. **status-line:**
 
    ```
    status-line = HTTP-version SP status-code SP reason-phrase CRLF
-   ```
-
-   ```
+   
    status-code = 3DIGIT    ;表示3位数字
-   ```
-
-   ```
+   
    reason-phrase = *(HTAB / SP / VCHAR / obs-text)
    ```
 
@@ -1324,27 +1316,33 @@ HTTP-message = start-line
    HTTP/1.1 200 OK
    ```
 
+     
+
 #### 3. header-field
 
-1. header-field:
+```
+header-field = field-name":" OWS field-value OWS
 
-   ```
-   header-field = field-name":" OWS field-value OWS
-   ```
+field-name = token
 
-   ```
-   field-name = token
-   ```
+field-value = *(field-content / obs-fold)
+```
 
-   ```
-   field-value = *(field-content / obs-fold)
-   ```
+OWS表示 `*(SP / HTAB)`，可以为空格或者tab键
 
-   OWS表示 `*(SP / HTAB)`，可以为空格或者tab键
+```
+Host: localhost
+```
+
+
 
 #### 4. message-body
 
-​	`message-body = *OCTET`
+```
+message-body = *OCTET
+
+username=123&pwd=456
+```
 
 
 
@@ -1358,47 +1356,47 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 [Patch method](https://tools.ietf.org/html/rfc5789%23section-2) 中描述了PATCH方法
 
-- GET
+- **GET**
 
   常用于读取的操作，请求参数直接拼接在URL的后面（浏览器对URL是有长度限制的）
 
-- HEAD
+- **HEAD**
 
   请求得到与GET请求相同的响应，但是没有响应体
 
   在下载一个大文件前，可以先获取其大小，再决定是否要下载。以此节约带宽资源
 
-- POST
+- **POST**
 
   常用于添加、修改、删除的操作，请求参数可以放到请求体中（没有大小限制）
 
-- PUT
+- **PUT**
 
   用于对已存在的资源进行整体覆盖
 
-- DELETE
+- **DELETE**
 
   用于删除指定的资源
 
-- CONNECT
+- **CONNECT**
 
   可以开启一个客户端与所请求资源之间的双向沟通的通道，它可以用来创建隧道（tunnel）
 
   可以用来访问采用了SSL（HTTPS）协议的站点
 
-- OPTIONS
+- **OPTIONS**
 
   用于获取目的资源所支持的通信选项，比如服务器支持的请求方式
-
+  
   ```
   OPTIONS * HTTP/1.1
   ```
 
-- TRACE
+- **TRACE**
 
   请求服务器回显其收到的请求信息，主要用于HTTP请求的测试或诊断
 
-- PATCH
+- **PATCH**
 
   用于对资源进行部分修改（资源不存在，会创建新的资源）
 
@@ -1410,7 +1408,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 请求报文和响应报文两方都会使用的首部
 
-- Cache-Control
+- **Cache-Control**
 
   控制缓存的行为。用来指定在这次的请求、响应链中的所有缓存机制都必须遵守的指令
 
@@ -1418,7 +1416,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Cache-Control: max-age=0
   ```
 
-- Connection
+- **Connection**
 
   该浏览器想要优先使用的连接类型
 
@@ -1426,7 +1424,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Connection: keep-alive
   ```
 
-- Date
+- **Date**
 
   发送该消息的日期和时间
 
@@ -1434,27 +1432,27 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Date: Wed, 09 Dec 2020 14:30:01 GMT
   ```
 
-- Pragma
+- **Pragma**
 
   报文指令
 
-- Trailer
+- **Trailer**
 
   报文末端的首部一览
 
-- Transfer-Encoding
+- **Transfer-Encoding**
 
   指定报文主体的传输编码方式
 
-- Upgrade
+- **Upgrade**
 
   升级为其他协议
 
-- Via
+- **Via**
 
   代理服务器的相关信息
 
-- Warning
+- **Warning**
 
   错误通知
 
@@ -1464,7 +1462,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 从客户端向服务端发送请求报文时使用的首部。补充了请求的附加内容、客户端信息、响应内容相关优先级等信息
 
-- Accept
+- **Accept**
 
   能够接受的响应内容类型（Content-Types）
 
@@ -1476,10 +1474,10 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
   - 文本文件
 
-    ```
+  ```
     text/html, text/plain, text/css ... 
     application/xhtml+xml, application/xml ...
-    ```
+  ```
 
   - 图片文件
 
@@ -1499,7 +1497,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
     application/octet-stream, application/zip ...
     ```
 
-- Accept-Charset
+- **Accept-Charset**
 
   能够接受的字符集
 
@@ -1507,7 +1505,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept-Charset: utf-8
   ```
 
-- Accept-Encoding
+- **Accept-Encoding**
 
   能够接受的编码方式列表
 
@@ -1515,25 +1513,25 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept-Encoding: gzip, deflate, br
   ```
 
-  - gzip
+  - **gzip**
 
     由文件压缩程序 gzip(GNU zip)生成的编码格式 (RFC1952)，采用 Lempel-Ziv 算法(LZ77)及 32 位循环冗余 校验(Cyclic Redundancy Check，通称 CRC)。
 
-  - compress
+  - **compress**
 
     由 UNIX 文件压缩程序 compress 生成的编码格式，采用 Lempel- Ziv-Welch 算法(LZW)。
 
-  - deflate
+  - **deflate**
 
     组合使用 zlib 格式(RFC1950)及由 deflate 压缩算法 (RFC1951)生成的编码格式。
 
-  - identity
+  - **identity**
 
     不执行压缩或不会变化的默认编码格式
 
   采用权重 q 值来表示相对优先级，这点与首部字段 Accept 相同。另外，也可使用星号(*)作为通配符，指定任意的编码格式。
 
-- Accept-Language
+- **Accept-Language**
 
   能够接受的响应内容的自然语言列表
 
@@ -1541,7 +1539,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
   ```
 
-- Authorization
+- **Authorization**
 
   web认证信息。用来告知服务器，用户代理的认证信息(证 书值)。通常，想要通过服务器认证的用户代理会在接收到返回的 401 状态码响应后，把首部字段 Authorization 加入请求中
 
@@ -1549,15 +1547,15 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Authorization: Basic dWVub3NlbjpwYXNzd29yZA==
   ```
 
-- Expect
+- **Expect**
 
   期待服务器的特定行为
 
-- From
+- **From**
 
   用户的电子邮箱地址
 
-- Host
+- **Host**
 
   服务器的域名、端口号
 
@@ -1565,7 +1563,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Host: www.baidu.com
   ```
 
-- User-Agent
+- **User-Agent**
 
   浏览器的身份标识字符串
 
@@ -1573,7 +1571,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36
   ```
 
-- Referer
+- **Referer**
 
   标识浏览器所访问的前一个页面，正是那个页面上的某个链接将浏览器带到了当前所请求的这个页面
 
@@ -1583,7 +1581,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Referer: http://localhost/
   ```
 
-- Range
+- **Range**
 
   仅请求某个实体的一部分。字节偏移以0开始
 
@@ -1591,7 +1589,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Range: bytes=500-999
   ```
 
-- Origin
+- **Origin**
 
   发起一个针对跨域资源共享的请求
 
@@ -1599,7 +1597,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Origin: https://www.baidu.com
   ```
 
-- Cookie
+- **Cookie**
 
   之前由服务器通过Set-Cookie发送的Cookie
 
@@ -1613,7 +1611,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 从服务端向客户端返回响应报文时使用的首部。补充了响应的附加内容，也会要求客户端附加额外的内容信息
 
-- Accept-Ranges
+- **Accept-Ranges**
 
   首部字段 Accept-Ranges 是用来告知客户端服务器是否能处理范围请 求，以指定获取服务器端某个部分的资源。
 
@@ -1623,15 +1621,17 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Accept-Ranges: bytes
   ```
 
-- Location
+- **Location**
 
-  用来进行重定向，或者在创建了某个新资源时使用
+  使用首部字段Location可以将响应接收方引导至某个与请求URI位置不同的资源
+
+  基本上，该字段会配合 3xx：Redirection的响应，提供重定向的URI。几乎所有的浏览器在接收到包含首部字段Location的响应后，都会强制性的尝试对已提示的重定向资源的访问
 
   ```
   Location: http://www.w3.org
   ```
 
-- Proxy-Authenticate
+- **Proxy-Authenticate**
 
   代理服务器对客户端的认证信息。首部字段 Proxy-Authenticate 会把由代理服务器所要求的认证信息发送 给客户端。
 
@@ -1641,7 +1641,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Proxy-Authenticate: Basic realm="Usagidesign Auth"
   ```
 
-- Server
+- **Server**
 
   服务器的名字
 
@@ -1650,11 +1650,11 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Server: Apache/2.4.1 (Unix)
   ```
 
-- Vary
+- **Vary**
 
   代理服务器缓存的管理信息
 
-- WWW-Authenticate
+- **WWW-Authenticate**
 
   服务器对客户端的认证信息
 
@@ -1662,7 +1662,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   WWW-Authenticate: Basic realm="Usagidesign Auth"
   ```
 
-- Access-Control-Allow-Origin
+- **Access-Control-Allow-Origin**
 
   指定哪些网站可参与到跨来源资源共享过程中
 
@@ -1670,7 +1670,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Access-Control-Allow-Origin: *
   ```
 
-- Set-Cookie
+- **Set-Cookie**
 
   返回一个Cookie让客户端去保存。当服务器准备开始管理客户端状态时，会事先告知各种信息
 
@@ -1693,7 +1693,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 针对请求报文和响应报文的实体部分使用的首部。补充了资源内容更新时间等与实体有关的信息
 
-- Allow
+- **Allow**
 
   资源可支持的HTTP方法
 
@@ -1701,7 +1701,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Allow: GET, HEAD
   ```
 
-- Last-Modified
+- **Last-Modified**
 
   所请求的对象的最后修改日期
 
@@ -1709,7 +1709,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Last-Modified: Wed, 09 Dec 2020 14:30:01 GMT
   ```
 
-- Expires
+- **Expires**
 
   指定一个时间，超过该时间则认为此响应以及过期
 
@@ -1717,15 +1717,17 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Expires: Wed, 09 Dec 2020 14:30:01 GMT
   ```
 
-- Content-Type
+- **Content-Type**
 
   响应体的类型
 
   ```
   Content-Type: text/html;charset=utf-8
+  
+  Content-Type: multipart/form-data;boundary=xxx
   ```
 
-- Content-Encoding
+- **Content-Encoding**
 
   内容所使用的编码类型
 
@@ -1733,7 +1735,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Content-Encoding: gzip
   ```
 
-- Content-Length
+- **Content-Length**
 
   响应体的长度（字节为单位）
 
@@ -1741,7 +1743,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Content-Length: 348
   ```
 
-- Content-Disposition
+- **Content-Disposition**
 
   一个可以让客户端下载文件并建议文件名的头部
 
@@ -1749,7 +1751,7 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
   Content-Disposition: attachment; filename="fname.ext"
   ```
 
-- Content-Range
+- **Content-Range**
 
   这条部分消息是属于完整消息的哪部分
 
@@ -1759,5 +1761,141 @@ GET  HEAD  POST  PUT  DELETE  CONNECT  OPTIONS  TRACE
 
 
 
-### HTTP状态码
+### HTTP状态码（Status Code）
+
+在[RFC 2616 10.Status Code Definitions](https://tools.ietf.org/html/rfc2616%23section-10)规范中定义。状态码指示HTTP请求是否已成功完成
+
+状态码可以分为5类
+
+- 信息响应：100~199
+- 成功响应：200~299
+- 重定向：300~399
+- 客户端错误：400~499
+- 服务器错误：500~599
+
+
+
+#### 1xx（信息）
+
+1xx表示接收的请求正在处理
+
+- 100 Continue
+
+  请求的初始部分已经被服务器收到，并且没有被服务器拒绝。客户端应该继续发送剩余的请求，如果请求已经完成，就忽略这个响应。
+
+  允许客户端发送带请求头的请求前，判断服务器是否愿意接收请求（服务器通过请求头判断）
+
+  在某些情况下，如果服务器在不看请求头就拒绝请求时，客户端就发送请求体是不恰当的或低效的
+
+
+
+#### 2xx（成功）
+
+2xx的响应结果表明请求被正常处理了
+
+- **200 OK**
+
+  表示从客户端发来的请求在服务器端被正常处理了。
+
+  在响应报文内，随状态码一起返回的信息会因方法的不同而发生改变。比如，使用 GET 方法时，对应请求资源的实体会作为响应返 回; 而使用 HEAD 方法时，对应请求资源的实体首部不随报文主体作为响应返回(即在响应中只返回首部，不会返回实体的主体部 分)。
+
+- **204 No Content**
+
+  该状态码代表服务器接收的请求已成功处理，但在返回的响应报文中不含实体的主体部分。另外，也不允许返回任何实体的主体。比如， 当从浏览器发出请求处理后，返回 204 响应，那么浏览器显示的页面不发生更新。
+
+  一般在只需要从客户端往服务器发送信息，而对客户端不需要发送新信息内容的情况下使用。
+
+- **206 Partial Content**
+
+  该状态码表示客户端进行了范围请求，而服务器成功执行了这部分的 GET 请求。响应报文中包含由 Content-Range 指定范围的实体内容。
+
+
+
+#### 3xx（重定向）
+
+3xx 响应结果表明浏览器需要执行某些特殊的处理以正确处理请求。
+
+- **301 Moved Permanently**
+
+  永久性重定向。该状态码表示请求的资源已被分配了新的 URI，以后应使用资源现在所指的 URI。也就是说，如果已经把资源对应的 URI 保存为书签了，这时应该按 Location 首部字段提示的 URI 重新保存。
+
+- **302 Found**
+
+  临时性重定向。该状态码表示请求的资源已被分配了新的 URI，希望 用户(本次)能使用新的 URI 访问。
+
+  和 301 Moved Permanently 状态码相似，但 302 状态码代表的资源不是被永久移动，只是临时性质的。换句话说，已移动的资源对应的 URI 将来还有可能发生改变。比如，用户把 URI 保存成书签，但不会像 301 状态码出现时那样去更新书签，而是仍旧保留返回 302 状态码 的页面对应的 URI。
+
+- **303 See Other**
+
+  该状态码表示由于请求对应的资源存在着另一个 URI，应使用 GET 方法定向获取请求的资源。
+
+  303 状态码和 302 Found 状态码有着相同的功能，但 303 状态码明确表示客户端应当采用 GET 方法获取资源，这点与 302 状态码有区别。
+
+  比如，当使用 POST 方法访问 CGI 程序，其执行后的处理结果是希望 客户端能以 GET 方法重定向到另一个 URI 上去时，返回 303 状态码。虽然 302 Found 状态码也可以实现相同的功能，但这里使用 303状态码是最理想的
+
+- **304 Not Modified**
+
+  该状态码表示客户端发送附带条件的请求时，服务器端允许请求访问资源，但未满足条件的情况。304 状态码返回时，不包含任何响应的主体部分。304 虽然被划分在 3XX 类别中，但是和重定向没有关系。
+
+  说明无需再次传输请求的内容，也就是说可以使用缓存的内容
+
+
+
+#### 4xx（客户端错误）
+
+4xx 的响应结果表明客户端是发生错误的原因所在。
+
+- **400 Bad Request**
+
+  该状态码表示请求报文中存在语法错误。当错误发生时，需修改请求的内容后再次发送请求。另外，浏览器会像 200 OK 一样对待该状态码。
+
+- **401 Unauthorized**
+
+  该状态码表示发送的请求需要有通过 HTTP 认证的认证信息。
+
+  返回含有 401 的响应必须包含一个适用于被请求资源的 WWW- Authenticate 首部用以质询(challenge)用户信息。当浏览器初次接收 到 401 响应，会弹出认证用的对话窗口。
+
+- **403 Forbidden**
+
+  该状态码表明对请求资源的访问被服务器拒绝了。服务器端没有必要给出拒绝的详细理由，但如果想说明的话，可以在实体的主体部分对原因进行描述，这样就能让用户看到了。 
+
+  未获得文件系统的访问授权，访问权限出现某些问题(从未授权的发送源 IP 地址试图访问)等列举的情况都可能是发生 403 的原因。
+
+- **404 Not Found**
+
+  该状态码表明服务器上无法找到请求的资源。除此之外，也可以在服务器端拒绝请求且不想说明理由时使用。
+
+- **405 Method Not Allowed**
+
+  服务器禁止了使用当前HTTP方法的请求。例如不允许使用GET请求，需要换成POST
+
+- **406 Not Acceptable**
+
+  服务器无法提供与Accept-Charset以及Accept-Language指定的值相匹配的响应
+
+- **408 Request Timeout**
+
+  服务器想要将没有在使用的连接关闭。一些服务器会在空闲连接上发送此消息，即便是在客户端没有发送任何请求的情况下
+
+
+
+#### 5xx（服务器错误）
+
+5xx 的响应结果表明服务器本身发生错误。
+
+- **500 Internal Server Error**
+
+  该状态码表明服务器端在执行请求时发生了错误。也有可能是 Web 应用存在的 bug 或某些临时的故障。
+
+- **501 Not Implemented**
+
+  请求的方法不被服务器支持，因此无法被处理。服务器必须支持的方法（即不会返回这个状态码的方法）只有 GET 和 HEAD
+
+- **502 Bad Gateway**
+
+  作为网关或代理角色的服务器，从上游服务器（如tomcat）中接收到的响应是无效的
+
+- **503 Service Unavailable**
+
+  该状态码表明服务器暂时处于超负载或正在进行停机维护，现在无法处理请求。如果事先得知解除以上状况需要的时间，最好写入 RetryAfter 首部字段再返回给客户端。
 
