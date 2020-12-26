@@ -169,7 +169,7 @@ end
    end
    ```
 
-3. 初始化root_object对象
+3. 初始化root_object对象，对应的是PBXProject对象
 
    ``` ruby
    # Initializes the instance with the project stored in the `path` attribute.
@@ -223,6 +223,8 @@ end
 
 
 ## 2. 获取target
+
+![](./proj_img/xcodeproj_9.png)
 
 ``` ruby
 # target
@@ -332,7 +334,264 @@ attribute :build_settings, Hash, {}
 
 ## 5. 引入类文件到工程中
 
+在KBTEST下新建New，添加a.h，a.m到New group下，代码如下：
 
+```ruby
+# 添加文件
+new_path = File.join("KBTEST","New")
+group = project.main_group.find_subpath(new_path, true )
+group.set_source_tree("<group>")
+group.set_path("New")
+
+file_ref = group.new_reference(File.join(project.project_dir, "/KBTEST/New/a.h"))
+file_ref1 = group.new_reference(File.join(project.project_dir, "/KBTEST/New/a.m"))
+
+target = project.targets.first
+target.add_file_references([file_ref1])
+
+
+project.save
+```
+
+
+
+首先，我们在xcode下主动新建一个group，命名为New1。 在New1下新建new1.h 、new1.m文件。然后观察pbxproj文件的变化
+
+1. 在PBXGroup下新增了New1对应的模块，并在 KBTEST（ mainGroup）children下新增了对 New1的引用。
+
+![](./proj_img/xcodeproj_12.png)
+
+2. 在 PBXFileReference 段下，新增了两项，代表了 new1.h、new1.m。所有添加的文件都会进入到此模块中
+
+![](./proj_img/xcodeproj_11.png)
+
+3. 由于.m文件要参与编译，所以在 PBXBuildFile 下会新增一项new1.m，具体引用的是 PBXFileReference 下new1.m文件
+
+![](./proj_img/xcodeproj_10.png)
+
+4. 在 PBXSourcesBuildPhase 下会新增一项new1.m，这里new1.m引用的是上面 PBXBuildFile中new1.m文件。（PBXSourcesBuildPhase对应的是xcode中 Build Phase下的 Compile Sources）
+
+![](./proj_img/xcodeproj_13.png)
+
+通过上述步骤我们来分析一下代码的每一步都做了什么？
+
+
+
+1. **在KBTEST（mainGroup）下新建New（Group），设置source_tree和path，设置方式可以参考KBTEST，source_tree为`<group>`**
+
+   ``` ruby
+   new_path = File.join("KBTEST","New")
+   group = project.main_group.find_subpath(new_path, true )
+   group.set_source_tree("<group>")
+   group.set_path("New")
+   ```
+
+   ```
+   5E785D438559401E397AB673 /* New */ = {
+     isa = PBXGroup;
+     children = (
+       41B83A50825CA76C4A7D57D7 /* a.h */,
+       BBCB1AF3369FC78AEC34D2F2 /* a.m */,
+     );
+     name = New;
+     path = New;
+     sourceTree = "<group>";
+   };
+   ```
+
+   
+
+2. **添加a.h、a.m的文件引用。path路径为绝对路径**
+
+   ``` ruby
+   file_ref = group.new_reference(File.join(project.project_dir, "/KBTEST/New/a.h"))
+   file_ref1 = group.new_reference(File.join(project.project_dir, "/KBTEST/New/a.m"))
+   ```
+
+   ```
+   /* Begin PBXFileReference section */
+   
+     41B83A50825CA76C4A7D57D7 /* a.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = a.h; sourceTree = "<group>"; };
+     BBCB1AF3369FC78AEC34D2F2 /* a.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = a.m; sourceTree = "<group>"; };
+   
+   /* End PBXFileReference section */
+   ```
+
+   
+
+   `new_file_reference`定义在`file_references_factory.rb`文件中
+
+   ``` ruby
+   def new_file_reference(group, path, source_tree)
+     path = Pathname.new(path)
+     ref = group.project.new(PBXFileReference)
+     group.children << ref
+     GroupableHelper.set_path_with_source_tree(ref, path, source_tree)
+     ref.set_last_known_file_type
+     ref
+   end
+   ```
+
+   从上述代码中可以看出首先会创建 PBXFileReference文件，然后加入到group的children下，最后返回PBXFileReference引用对象
+
+   
+
+3. **添加.m文件到目标target的PBXBuildFile和PBXSourcesBuildPhase下，参与编译。**
+
+   ``` ruby
+   target = project.targets.first
+   target.add_file_references([file_ref1])
+   ```
+
+   这里选择的是第一个target。调用`add_file_references()`方法
+
+   ``` ruby
+   # Adds source files to the target.
+   #
+   # @param  [Array<PBXFileReference>] file_references
+   #         the files references of the source files that should be added
+   #         to the target.
+   #
+   # @param  [String] compiler_flags
+   #         the compiler flags for the source files.
+   #
+   # @yield_param [PBXBuildFile] each created build file.
+   #
+   # @return [Array<PBXBuildFile>] the created build files.
+   #
+   def add_file_references(file_references, compiler_flags = {})
+     file_references.map do |file|
+       extension = File.extname(file.path).downcase
+       header_extensions = Constants::HEADER_FILES_EXTENSIONS
+       is_header_phase = header_extensions.include?(extension)
+       phase = is_header_phase ? headers_build_phase : source_build_phase
+   
+       unless build_file = phase.build_file(file)
+         build_file = project.new(PBXBuildFile)
+         build_file.file_ref = file
+         phase.files << build_file
+       end
+   
+       if compiler_flags && !compiler_flags.empty? && !is_header_phase
+         (build_file.settings ||= {}).merge!('COMPILER_FLAGS' => compiler_flags) do |_, old, new|
+           [old, new].compact.join(' ')
+         end
+       end
+   
+       yield build_file if block_given?
+   
+       build_file
+     end
+   end
+   ```
+
+   - 第一步首先根据文件名称判断类型是 PBXHeadersBuildPhase 或者 PBXSourcesBuildPhase
+
+     ``` ruby
+     extension = File.extname(file.path).downcase
+     header_extensions = Constants::HEADER_FILES_EXTENSIONS
+     is_header_phase = header_extensions.include?(extension)
+     phase = is_header_phase ? headers_build_phase : source_build_phase
+     ```
+
+     ``` ruby
+     # Finds or creates the source build phase of the target.
+     #
+     # @note   A target should have only one source build phase.
+     #
+     # @return [PBXSourcesBuildPhase] the source build phase.
+     #
+     def source_build_phase
+       find_or_create_build_phase_by_class(PBXSourcesBuildPhase)
+     end
+     
+     
+     # @!group Internal Helpers
+     #--------------------------------------#
+     
+     # Find or create a build phase by a given class
+     #
+     # @param [Class] phase_class the class of the build phase to find or create.
+     #
+     # @return [AbstractBuildPhase] the build phase whose class match the given phase_class.
+     #
+     def find_or_create_build_phase_by_class(phase_class)
+       @phases ||= {}
+       unless phase_class < AbstractBuildPhase
+         raise ArgumentError, "#{phase_class} must be a subclass of #{AbstractBuildPhase.class}"
+       end
+       @phases[phase_class] ||= build_phases.find { |bp| bp.class == phase_class } ||
+         project.new(phase_class).tap { |bp| build_phases << bp }
+     end
+     ```
+
+     这里的目的是找到或者新创建 PBXSourcesBuildPhase，然后返回
+
+     ![](./proj_img/xcodeproj_14.png)
+
+   - 第二步根据phase查找是否内部有对应的file。如果未找到，则新建PBXBuildFile，并添加到phase的files内部
+
+     ``` ruby
+     unless build_file = phase.build_file(file)
+       build_file = project.new(PBXBuildFile)
+       build_file.file_ref = file
+       phase.files << build_file
+     end
+     
+     
+     # @return [PBXBuildFile] the first build file associated with the given
+     #         file reference if one exists.
+     #
+     def build_file(file_ref)
+       (file_ref.referrers & files).first
+     end
+     ```
+
+   - 最后一步处理外部的块调用yield传参也为build_file。返回PBXBuildFile
+
+     ``` ruby
+     yield build_file if block_given?
+     
+     build_file
+     ```
+
+     
+
+4. **保存上述对工程进行的修改**
+
+   使用初始化期间提供的path或参数传入的path（xcodeproj文件），以xcodeproj格式序列化项目。
+   如果提供了path，则依赖于项目根的文件引用不会自动更新，因此客户端负责在保存之前执行任何所需的修改。
+
+   ``` ruby
+   # Serializes the project in the xcodeproj format using the path provided
+   # during initialization or the given path (`xcodeproj` file). If a path is
+   # provided file references depending on the root of the project are not
+   # updated automatically, thus clients are responsible to perform any needed
+   # modification before saving.
+   #
+   # @param  [String, Pathname] path
+   #         The optional path where the project should be saved.
+   #
+   # @example Saving a project
+   #   project.save
+   #   project.save
+   #
+   # @return [void]
+   #
+   def save(save_path = nil)
+     save_path ||= path
+     @dirty = false if save_path == path
+     FileUtils.mkdir_p(save_path)
+     file = File.join(save_path, 'project.pbxproj')
+     Atomos.atomic_write(file) do |f|
+       Nanaimo::Writer::PBXProjWriter.new(to_ascii_plist, :pretty => true, :output => f, :strict => false).write
+     end
+   end
+   ```
+
+   主要是调用`Nanaimo::Writer::PBXProjWriter.new(to_ascii_plist, :pretty => true, :output => f, :strict => false).write` 重新写pbxproj文件
+
+   [Nanaimo ](https://github.com/CocoaPods/Nanaimo) 是一个实现ASCII Plist序列化和反序列化的简单库，完全使用原生Ruby代码（并且没有依赖关系）。它还提供了对序列化Xcode projects（带注释）和XML plist的现成支持。在open和save中都使用了此库来操作pbxproj文件
 
 
 
@@ -345,221 +604,4 @@ attribute :build_settings, Hash, {}
 
 - [XcodeProject的内部结构分析](https://www.jianshu.com/p/50cc564b58ce)
 - [使用代码为 Xcode 工程添加文件](https://draveness.me/bei-xcodeproj-keng-de-zhe-ji-tian/)
-
-
-
-
-
-- project.rb
-
-  
-
-## Xcodeproj
-
-### Project
-
-#### Object
-
-##### AbstractBuildPhase
-
-```
-lib/xcodeproj/project/object/build_phase.rb
-```
-
-已知子类：
-
-[PBXCopyFilesBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXCopyFilesBuildPhase), [PBXFrameworksBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXFrameworksBuildPhase), [PBXHeadersBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXHeadersBuildPhase), [PBXResourcesBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXResourcesBuildPhase), [PBXRezBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXRezBuildPhase), [PBXShellScriptBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXShellScriptBuildPhase), [PBXSourcesBuildPhase](https://www.rubydoc.info/gems/xcodeproj/Xcodeproj/Project/Object/PBXSourcesBuildPhase)
-
-
-
-##### XCConfigurationList
-
-
-
-##### PBXGroup
-
-```
-lib/xcodeproj/project/object/group.rb
-```
-
-```ruby
-# Creates a new reference with the given path and adds it to the
-# group. The reference is configured according to the extension
-# of the path.
-#
-# @param  [#to_s] path
-#         The, preferably absolute, path of the reference.
-# 				最好是绝对路径
-#
-# @param  [Symbol] source_tree
-#         The source tree key to use to configure the path (@see
-#         GroupableHelper::SOURCE_TREES_BY_KEY).
-#
-# @return [PBXFileReference, XCVersionGroup] The new reference.
-#
-def new_reference(path, source_tree = :group)
-  FileReferencesFactory.new_reference(self, path, source_tree)
-end
-alias_method :new_file, :new_reference
-```
-
-
-
-```ruby
-def new_reference(group, path, source_tree)
-  ref = case File.extname(path).downcase
-        when '.xcdatamodeld'
-          new_xcdatamodeld(group, path, source_tree)
-        when '.xcodeproj'
-          new_subproject(group, path, source_tree)
-        else
-          new_file_reference(group, path, source_tree)
-        end
-
-  configure_defaults_for_file_reference(ref)
-  ref
-end
-```
-
-
-
-``` ruby
-# Creates a new file reference with the given path and adds it to the
-# given group.
-# 使用给定的path创建新的文件引用，并且加入到指定的group
-#
-# @param  [PBXGroup] group
-#         The group to which to add the reference.
-#
-# @param  [#to_s] path
-#         The, preferably absolute, path of the reference.
-#
-# @param  [Symbol] source_tree
-#         The source tree key to use to configure the path (@see
-#         GroupableHelper::SOURCE_TREES_BY_KEY).
-#
-# @return [PBXFileReference] The new file reference.
-#
-def new_file_reference(group, path, source_tree)
-  path = Pathname.new(path)
-  ref = group.project.new(PBXFileReference)
-  group.children << ref
-  GroupableHelper.set_path_with_source_tree(ref, path, source_tree)
-  ref.set_last_known_file_type
-  ref
-endv
-```
-
-
-
-``` ruby
-# Sets the path of the given object according to the provided source
-# tree key. The path is converted to relative according to the real
-# path of the source tree for group and project source trees, if both
-# paths are relative or absolute. Otherwise the path is set as
-# provided.
-#
-# @param  [PBXGroup, PBXFileReference] object
-#         The object whose path needs to be set.
-#
-# @param  [#to_s] path
-#         The path.
-#
-# @param  [Symbol, String] source_tree
-#         The source tree, either a string or a key for
-#         {SOURCE_TREES_BY_KEY}.
-#
-# @return [void]
-#
-
-def set_path_with_source_tree(object, path, source_tree)
-  path = Pathname.new(path)
-  source_tree = normalize_source_tree(source_tree)
-  object.source_tree = source_tree
-
-  if source_tree == SOURCE_TREES_BY_KEY[:absolute]
-    unless path.absolute?
-      raise '[Xcodeproj] Attempt to set a relative path with an ' \
-        "absolute source tree: `#{path}`"
-    end
-    object.path = path.to_s
-  elsif source_tree == SOURCE_TREES_BY_KEY[:group] || source_tree == SOURCE_TREES_BY_KEY[:project]
-    source_tree_real_path = GroupableHelper.source_tree_real_path(object)
-    if source_tree_real_path && source_tree_real_path.absolute? == path.absolute?
-      relative_path = path.relative_path_from(source_tree_real_path)
-      object.path = relative_path.to_s
-    else
-      object.path = path.to_s
-    end
-  else
-    object.path = path.to_s
-  end
-end
-```
-
-
-
-``` ruby
-def save(save_path = nil)
-  save_path ||= path
-  @dirty = false if save_path == path
-  FileUtils.mkdir_p(save_path)
-  file = File.join(save_path, 'project.pbxproj')
-  Atomos.atomic_write(file) do |f|
-    Nanaimo::Writer::PBXProjWriter.new(to_ascii_plist, :pretty => true, :output => f, :strict => false).write
-  end
-end
-```
-
-
-
-
-
-#### AbstractObject
-
-```
-lib/xcodeproj/project/object.rb
-```
-
-这是Xcode项目中可以存在的所有对象类型的基类。因此，它提供了常见的行为，但是您只能使用AbstractObject子类的实例，因为这个类不存在于实际的Xcode项目中。
-
-
-
-#### UUIDGenerator
-
-
-
-
-
-
-
-
-
-- CLAide
-
-  命令解析器
-
-- Cocoapods-Core
-
-  DSL解析器
-
-- Cocoapods-Downloader
-
-  下载模块
-
-- Molinillo
-
-  依赖仲裁算法
-
-- nanaimo
-
-  nanaimo是一个实现ASCII Plist序列化和反序列化的简单库，完全使用原生Ruby代码（并且没有依赖关系）。它还提供了对序列化Xcode projects（带注释）和XML plist的现成支持。
-
-- Xcodeproj
-
-  xcode文件生成
-
-- Cocoapods-Plugins
-
-  插件管理
 
