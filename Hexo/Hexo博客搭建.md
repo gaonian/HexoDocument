@@ -535,13 +535,13 @@ location / {
 
 如果我们用的是github pages，这时候我们就需要在hexo根目录下的`source`文件夹内创建一个`CNAME` 文件内，文件内容就是我们的域名。然后执行 `hexo g -d` ，hexo会把CNAME文件放到public文件夹内上传到github，github会自动识别到CNAME文件内的域名。在设置内Custom domain我们可以看到已经识别了域名
 
-![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/image/hexo1.png)
+![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/695dc92c7ae14dda944b9021fafa0ac6~tplv-k3u1fbpfcp-watermark.image)
 
 
 
 接下来需要在域名的后台去配置域名解析。注意类型是CNAME，后边直接写上我们的xxx.github.io 就可以了
 
-![](https://raw.githubusercontent.com/gaonian/HexoDocument/master/image/hexo2.png)
+![](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6948c7ccf2f4484a8923a45690af89c8~tplv-k3u1fbpfcp-watermark.image)
 
 
 

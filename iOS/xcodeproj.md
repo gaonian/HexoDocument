@@ -203,11 +203,11 @@ end
 
    `plist = Plist.read_from_path(pbxproj_path.to_s)` 内部会通过 `Nanaimo::Reader.new(contents).parse!.as_ruby` 把pbx文件转换为ruby的hash字典类型
 
-   ![](./proj_img/xcodeproj_1.png)
+      ![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3154ad4d768f4ca6a4bd4f013a5f5f40~tplv-k3u1fbpfcp-watermark.image)
 
    然后通过 `new_from_plist` 方法生成root_object对象。这一步就把pbx文件所有内容都一一映射为root_object对象，从此对象中可以获取到任意想要的内容
 
-   ![](./proj_img/xcodeproj_2.png)
+      ![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/38d975d045b14dca8d349ec13cfa4f6f~tplv-k3u1fbpfcp-watermark.image)
 
    - build_configuration_list 对应的是 XCConfigurationList，内部包含的是所有的XCBuildConfiguration
    - main_group对应的是 PBXGroup，工程的主group
@@ -218,13 +218,13 @@ end
 
 至此，open的逻辑基本分析完毕。总结一下就是通过xcodeproj路径把pbx文件转换为ruby对应的对象。最后来看一下project类初始化完毕后的全部属性
 
-![](./proj_img/xcodeproj_3.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f504c17e7e9c4fdf98aaf09ccb322b98~tplv-k3u1fbpfcp-watermark.image)
 
 
 
 ## 2. 获取target
 
-![](./proj_img/xcodeproj_9.png)
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/388f78b3e7784f9db1a25fbdb5d44b41~tplv-k3u1fbpfcp-watermark.image)
 
 ``` ruby
 # target
@@ -246,7 +246,7 @@ end
 
 2. 遍历targets数组，这里只是打印出每一个target的name。可以根据自己的需求进行不同的操作
 
-   ![](./proj_img/xcodeproj_5.png)
+      ![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e82439c07d93415ca6409327b6ff9873~tplv-k3u1fbpfcp-watermark.image)
 
 
 
@@ -276,17 +276,17 @@ puts files
 
 我们主要来分析第一步，如何获取到target下的build_file。了解pbx格式的就知道获取source files就是要获取PBXBuildPhase下的 PBXSourcesBuildPhase 段的内容，通过PBXSourcesBuildPhase下的files数组可以找到对应的PBXBuildFile，然后就可以找到PBXFileReference。
 
-![](./proj_img/xcodeproj_6.png)
+![](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a67b4fe88e754e989dedf0bb04a9b467~tplv-k3u1fbpfcp-watermark.image)
 
 下图是ruby下的build_phase结构
 
-![](./proj_img/xcodeproj_7.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/cbeddb3e8f3e4863bf766a75f8cba107~tplv-k3u1fbpfcp-watermark.image)
 
 `target.source_build_phase` 就是获取上图中build_phase对象
 
 `target.source_build_phase.files` 是获取到 build_phase 对象中的files数组，对files数组进行遍历，其中每一个对象对PBXBuildFile
 
-![](./proj_img/xcodeproj_8.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5f02208351ad4a29b2b76f148112cb61~tplv-k3u1fbpfcp-watermark.image)
 
 `pbx_build_file.file_ref` 就是获取上图中的 PBXFileReference 对象
 
@@ -328,7 +328,7 @@ end
 attribute :build_settings, Hash, {}
 ```
 
-![](./proj_img/xcodeproj_4.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/da9a35c3f1274a648b765940d39f925a~tplv-k3u1fbpfcp-watermark.image)
 
 
 
@@ -359,19 +359,19 @@ project.save
 
 1. 在PBXGroup下新增了New1对应的模块，并在 KBTEST（ mainGroup）children下新增了对 New1的引用。
 
-![](./proj_img/xcodeproj_12.png)
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/181cd3ed50b248b58d8615c00c155077~tplv-k3u1fbpfcp-watermark.image)
 
 2. 在 PBXFileReference 段下，新增了两项，代表了 new1.h、new1.m。所有添加的文件都会进入到此模块中
 
-![](./proj_img/xcodeproj_11.png)
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/18fe606ec3fd4220baeac4c02250cb29~tplv-k3u1fbpfcp-watermark.image)
 
 3. 由于.m文件要参与编译，所以在 PBXBuildFile 下会新增一项new1.m，具体引用的是 PBXFileReference 下new1.m文件
 
-![](./proj_img/xcodeproj_10.png)
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5fb85ae4c77146049e6c3fb7bbffa33c~tplv-k3u1fbpfcp-watermark.image)
 
 4. 在 PBXSourcesBuildPhase 下会新增一项new1.m，这里new1.m引用的是上面 PBXBuildFile中new1.m文件。（PBXSourcesBuildPhase对应的是xcode中 Build Phase下的 Compile Sources）
 
-![](./proj_img/xcodeproj_13.png)
+![](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/79a7991b6bf345d2aae1b84cf57c6eb3~tplv-k3u1fbpfcp-watermark.image)
 
 通过上述步骤我们来分析一下代码的每一步都做了什么？
 
@@ -527,7 +527,7 @@ project.save
 
      这里的目的是找到或者新创建 PBXSourcesBuildPhase，然后返回
 
-     ![](./proj_img/xcodeproj_14.png)
+     ​     ![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8350c9bdaa1f47208aaa0de8a45f24e8~tplv-k3u1fbpfcp-watermark.image)
 
    - 第二步根据phase查找是否内部有对应的file。如果未找到，则新建PBXBuildFile，并添加到phase的files内部
 

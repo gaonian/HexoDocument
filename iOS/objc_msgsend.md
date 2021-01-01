@@ -497,4 +497,4 @@ That's the end of the `nil` handler, and of `objc_msgSend` as a whole.
 
 以上就是`nil`的处理方法，以及`objc_msgSend`的全部。
 
-![objc_msgSend](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/msgsend_img/objc_msgsend.png)
+![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/357b0ef522de4780b089f12a7fc86ad3~tplv-k3u1fbpfcp-watermark.image)

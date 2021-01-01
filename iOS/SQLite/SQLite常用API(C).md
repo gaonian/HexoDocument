@@ -31,7 +31,7 @@ typedef struct sqlite3 sqlite3;
 
 还有许多其他接口（如 `sqlite3_prepare_v2()` 、`sqlite3_create_function()` 和 `sqlite3_busy_timeout()` ）是sqlite3对象上的方法。
 
-![sqlite1](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sqlite_image/sqlite1.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/c0de2eb8bd244a2cb09576e7897301a0~tplv-k3u1fbpfcp-watermark.image)
 
 
 
@@ -68,7 +68,7 @@ prepared语句对象的生命周期通常如下：
 
 - sqlite3_finalize()
 
-![sqlite2](https://raw.githubusercontent.com/gaonian/HexoDocument/master/iOS/SQLite/sqlite_image/sqlite2.png)
+![](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2677d9a95f9144b386cfdefa5d788030~tplv-k3u1fbpfcp-watermark.image)
 
 
 
