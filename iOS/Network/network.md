@@ -69,7 +69,7 @@ TCP/IP协议
 
 ### 数据通信模型
 
-<img src="./network_img/net_21.png" style="zoom:70%;" />
+![](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/ecdb0268701c42f7ae1ec5790bb8e8ac~tplv-k3u1fbpfcp-watermark.image)
 
   
 
@@ -107,7 +107,7 @@ TCP/IP协议
 
 链路：从1个节点到相邻节点的一段物理线路（有线或无线），中间没有其他交换节点
 
-![img](./network_img/net_16.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e016ca5b3f7142f7b66ec4ba4eade9b6~tplv-k3u1fbpfcp-watermark.image)
 
 数据链路：在一条链路上传输数据时，需要有对应的通信协议来控制数据的传输
 
@@ -137,13 +137,13 @@ TCP/IP协议
 
   每一种数据链路层协议都规定了所能够传送的帧的数据长度上限，以太网的MTU为1500个字节
 
-![](./network_img/net_17.png)
+![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b4f81c8f990d41848298ae493464bb81~tplv-k3u1fbpfcp-watermark.image)
 
 
 
 ### 透明传输
 
-![img](./network_img/net_18.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9bf8ba4d63fc466e859d1a55e38d6a4d~tplv-k3u1fbpfcp-watermark.image)
 
 使用SOH（Start Of Header）：作为帧开始符
 
@@ -153,7 +153,7 @@ TCP/IP协议
 
 数据部分一旦出现了SOH、EOT，就需要进行转义
 
-<img src="./network_img/net_19.png" alt="img" style="zoom:75%;" />
+![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d71d606c54aa4a64a76eda6a6dfbbe41~tplv-k3u1fbpfcp-watermark.image)
 
 
 
@@ -161,7 +161,7 @@ TCP/IP协议
 
 FCS：根据 数据部分+首部 计算得出的
 
-![img](./network_img/net_20.png)
+![](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/bd78e00d88b543c79b32cada063cf631~tplv-k3u1fbpfcp-watermark.image)
 
 
 
@@ -193,7 +193,7 @@ CSMA/CD（Carrier Sense Multiple Access with Collision Detectio）
 
 Ethernet V2帧的格式
 
-<img src="./network_img/net_22.png" style="zoom:75%;" />
+<img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3d5aefac5bc84c26b08506ebfab2afa2~tplv-k3u1fbpfcp-watermark.image" style="zoom:75%;" />
 
 - 首部： 目标MAC地址 + 源MAC地址 + 网络类型
 
@@ -203,7 +203,7 @@ Ethernet V2帧的格式
 
 - 当数据部分的长度小于46字节时，数据链路层会在数据的后面加入一些字节填充，接收端会将添加的字节去掉
 
-<img src="./network_img/net_23.png" style="zoom:90%;" />
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a2c56ec2281e4537b63ac8cefc5a0f84~tplv-k3u1fbpfcp-watermark.image" style="zoom:90%;" />
 
 长度总结：
 
@@ -216,14 +216,14 @@ Ethernet V2帧的格式
 
 ### PPP（Point to Point Protocol）
 
-<img src="./network_img/net_24.png" style="zoom:75%;" />
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d8182a398858480d9a4b6421def11120~tplv-k3u1fbpfcp-watermark.image" style="zoom:75%;" />
 
 - Address字段：图中的值是0xFF，形同虚设，点到点信道不需要源MAC，目标MAC地址
 - Control字段：图中的值是0x03，目前没什么作用
 - Protocol字段：内部用到的协议类型
 - 帧开始符、帧结束符：0x7E
 
-<img src="./network_img/net_25.png" style="zoom:85%;" />
+<img src="https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/eb62817e21fc4fc9b386dee1e143be30~tplv-k3u1fbpfcp-watermark.image" style="zoom:85%;" />
 
 字节填充：
 
@@ -237,7 +237,7 @@ Ethernet V2帧的格式
 
 网络层数据包（IP数据包，Packet）由首部、数据2部分组成
 
-![](./network_img/net_14.png)
+![](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/983f1ca5196445a981f0eb84f9847f8c~tplv-k3u1fbpfcp-watermark.image)
 
 - 数据部分
 
@@ -273,7 +273,7 @@ Ethernet V2帧的格式
 
   首部 + 数据的长度之和，最大值65535 （2^16）
 
-  <img src="./network_img/net_15.png" style="zoom:90%;" />
+    <img src="https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a84f25e3e709476ab1e1cbff3b697b4c~tplv-k3u1fbpfcp-watermark.image" style="zoom:90%;" />
 
   由于帧的数据不能超过1500字节，所以过大的IP数据包，需要分成片（fragments）传输给数据链路层
 
