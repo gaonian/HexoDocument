@@ -147,3 +147,7 @@ totalBytesExpectedToWrite 表示期望收到的文件总字节数，是由Conten
 
 
 
+## 参考资料
+
+[NSURLSession最全攻略](https://www.jianshu.com/p/ac79db251cbf)
+
