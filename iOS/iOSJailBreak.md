@@ -15,7 +15,7 @@ title : iOS 逆向
 
 - 一台完美越狱的手机 (安装了`cydia`)
 - phone上在cydia安装 `adv-cmds` ，用于查看当前进程 (`ps -A`)
-- mac 上安装 `iFunBox` ，用于查看手机上文件目录
+- mac 上查看手机文件目录。1. 安装 `iFunBox` 。2. 爱思助手（根据爱思提示安装相应插件）
 
 ## 目录结构 
 
@@ -94,30 +94,40 @@ iOS和MacOS都是基于Darwin（苹果的一个基于Unix的开源系统内核�
 
 ## usbmuxd
 
-在wifi不稳定的情况下，通过ssh连接的在输入命令时可能会出现卡顿的情况（ssh走的是tcp协议，mac是通过网络连接的方式连接到wifi的）。所以为了加快传输速度，还可以通过USB
-
-  连接的方式连接到iPhone。
+在wifi不稳定的情况下，通过ssh连接的在输入命令时可能会出现卡顿的情况（ssh走的是tcp协议，mac是通过网络连接的方式连接到wifi的）。所以为了加快传输速度，还可以通过USB连接的方式连接到iPhone。
 
 mac上有一个服务程序`usbmuxd`，可以将mac的数据通过USB传输到iPhone
 
-- 下载工具包 https://cgit.sukimashita.com/usbmuxd.git/snapshot/usbmuxd-1.0.8.tar.gz
+安装方式：
 
-  ```
-  python python-client/tcprelay.py -t 22:10010
-  ```
+1. [下载工具包](https://cgit.sukimashita.com/usbmuxd.git/snapshot/usbmuxd-1.0.8.tar.gz)，完成之后将iPhone上的22端口映射到mac本地的2222端口
 
-  将iPhone上的22端口映射到mac本地的10010端口
+   ```
+   python python-client/tcprelay.py -t 22:10010
+   ```
 
-  
+   新开终端窗口，访问本地的2222端口，连接到iPhone上
 
-- 新开终端窗口，访问本地的10010端口，同样连接到iPhone上
+   ```
+   ➜  ~ ssh root@localhost -p 10010
+   iPhone:~ root# 
+   ```
 
-  ```
-  ➜  ~ ssh root@localhost -p 10010
-  iPhone:~ root# 
-  ```
+2. 也可通过homebrew安装usbmuxd
 
-  
+   ```
+   brew install usbmuxd
+   ```
+
+   使用iproxy，该工具会将设备上的端口号映射到电脑上的某一个端口，例如：
+
+   ```
+   iproxy 2222 22
+   ```
+
+   新打开窗口，和第一步操作一样
+
+
 
 # Cycript
 
@@ -167,7 +177,7 @@ Cycript 是一个允许开发者使用Objective-C++ 和 JavaScript 组合语法�
 
 - Cycript高级应用，自定义脚本
 
-  Cycript本身支持加载自己的脚本，具体可参考 https://github.com/CoderMJLee/mjcript
+  Cycript本身支持加载自己的脚本，具体可参考 [mjcript](https://github.com/CoderMJLee/mjcript)
 
   ```shell
   iPhone:~ root# cycript -p WeChat
@@ -185,9 +195,9 @@ Cycript 是一个允许开发者使用Objective-C++ 和 JavaScript 组合语法�
 
   
 
-# 脱壳
+# 砸壳
 
-应用上传至App Store后，苹果会对其进行加密，当应用运行时才会动态解密，在这样的情况下是无法使用一些工具对app进行分析破解的。所以，我们要先对加密过的app进行解密，也就是脱壳操作。iOS中主要脱壳工具有两种 `Clutch` `dumpdecrypted`
+应用上传至App Store后，苹果会对其进行加密，当应用运行时才会动态解密，在这样的情况下是无法使用一些工具对app进行分析破解的。所以，我们要先对加密过的app进行解密，也就是脱壳操作。iOS中主要脱壳工具有两种 `Clutch` `dumpdecrypted` `frida-ios-dump`
 
 ## 如何查看是否脱壳
 
@@ -249,6 +259,39 @@ iPhone:~ root#
   `xx.decrypted`就是脱壳后的ipa文件
 
 ![dumpdecrypted](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_6.png)
+
+## frida-ios-dump
+
+cluth、dumpdecrypted 太久没有维护了，对于高版本系统已经不适用了。建议使用 [frida-ios-dump](https://github.com/AloneMonkey/frida-ios-dump) 方式。
+
+1. 手机端配置
+
+   - 打开cydia，添加软件源 https://build.frida.re
+   - 安装 Frida
+
+2. pc端配置
+
+   - 下载frida-ios-dump项目，进入目录
+
+   - 执行 `sudo pip install -r requirements.txt --upgrade`，安装相应依赖
+
+   - 打开ssh通道，`iproxy 2222 22`
+
+   - 查看手机上所有应用
+
+     ```
+     ./dump -l
+     ```
+
+     ![](./jailbreak_image/jailbreak_32.png)
+
+   - 选择应用执行脱壳，执行成功之后会把脱壳后的ipa拷贝到当前目录下。（ps：手机上的包要从appstore下载，不要从三方下载，不然脱壳过程中会卡住没有反应）
+
+     ```
+     ./dump bundleid
+     ```
+
+     ![](./jailbreak_image/jailbreak_33.png)
 
 
 
@@ -1159,4 +1202,18 @@ MonkeyDev是 [iOS应用逆向与安全]([https://baike.baidu.com/item/iOS%E5%BA%
 - 设置完毕之后连接真机选择证书调试运行，运行起来之后就可以看到输出信息，和平时我们的debug环境调试一样。monkeyDev就简单介绍到这里。平时开发中使用monkeydev，效率会极大提升
 
   ![debug](https://raw.githubusercontent.com/gaoyuhang/HexoDocument/master/iOS/jailbreak_image/jailbreak_31.png)
+
+monkydev很久没有维护了，针对新xcode出现了很多问题。
+
+- 找不到cycript头文件，自行去cycript官网下载framework，然后放到 /opt/monkydev/framework/ 目录下。
+
+- libstdc++问题
+
+列一些参考文档
+
+https://github.com/AloneMonkey/MonkeyDev/issues/305
+
+https://www.jianshu.com/p/c266687d8340
+
+https://zhuanlan.zhihu.com/p/504835158
 
